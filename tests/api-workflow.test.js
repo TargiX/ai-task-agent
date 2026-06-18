@@ -335,6 +335,87 @@ test('real issue export is idempotent and only sends newly approved tasks', asyn
   }
 });
 
+test('partial issue export retries only failed tasks', async () => {
+  await isolateJsonStorage();
+  process.env.GITHUB_TOKEN = 'github-token';
+  process.env.GITHUB_REPOSITORY = 'owner/repo';
+  const previousFetch = global.fetch;
+  const calls = [];
+  global.fetch = async (url, options = {}) => {
+    calls.push({ url, options, body: options.body ? JSON.parse(options.body) : null });
+    const title = calls.at(-1).body.title;
+    if (calls.length === 2) {
+      return {
+        ok: false,
+        status: 502,
+        json: async () => ({ message: `Temporary failure for ${title}` }),
+      };
+    }
+    return {
+      ok: true,
+      status: 201,
+      json: async () => ({
+        id: calls.length,
+        number: calls.length,
+        html_url: `https://github.com/owner/repo/issues/${calls.length}`,
+      }),
+    };
+  };
+
+  try {
+    const run = await handleApiRequest({
+      method: 'POST',
+      pathname: '/api/agent/run',
+      body: { idea },
+    });
+    const [first, second, third] = run.body.tasks;
+    await handleApiRequest({
+      method: 'PATCH',
+      pathname: '/api/tasks/batch',
+      body: {
+        taskIds: [first.id, second.id, third.id],
+        status: 'approved',
+        reviewNote: 'Ready for partial retry test.',
+      },
+    });
+
+    const firstExport = await handleApiRequest({
+      method: 'POST',
+      pathname: '/api/export',
+      body: { target: 'GitHub' },
+    });
+    assert.equal(firstExport.status, 200);
+    assert.equal(firstExport.body.exports[0].status, 'partial-or-failed');
+    assert.equal(firstExport.body.exports[0].delivery.filter((item) => item.ok).length, 2);
+    assert.equal(firstExport.body.exports[0].delivery.find((item) => !item.ok).sourceTaskId, second.id);
+    assert.equal(calls.length, 3);
+
+    const retryPackage = await handleApiRequest({
+      method: 'GET',
+      pathname: '/api/export-package',
+      query: { target: 'GitHub' },
+    });
+    assert.equal(retryPackage.body.status, 'ready');
+    assert.equal(retryPackage.body.summary.pendingExportCount, 1);
+    assert.equal(retryPackage.body.summary.exportedCount, 2);
+    assert.equal(retryPackage.body.payload[0].sourceTaskId, second.id);
+
+    const retryExport = await handleApiRequest({
+      method: 'POST',
+      pathname: '/api/export',
+      body: { target: 'GitHub' },
+    });
+    assert.equal(retryExport.status, 200);
+    assert.equal(retryExport.body.exports[0].status, 'created');
+    assert.equal(retryExport.body.exports[0].payload.length, 1);
+    assert.equal(retryExport.body.exports[0].payload[0].sourceTaskId, second.id);
+    assert.equal(calls.length, 4);
+    assert.equal(calls[3].body.title, second.title);
+  } finally {
+    global.fetch = previousFetch;
+  }
+});
+
 test('run history keeps previous agent runs and can resume one as current', async () => {
   await isolateJsonStorage();
   const first = await handleApiRequest({

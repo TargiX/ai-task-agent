@@ -1559,7 +1559,10 @@ function ExportPanel({
           {exports.length ? (
             exports.slice(0, 3).map((record) => (
               <div key={record.id}>
-                <span>{record.target}</span>
+                <span>
+                  <strong>{record.target}</strong>
+                  <small>{formatExportRecordMeta(record)}</small>
+                </span>
                 <Badge variant="outline">{record.status}</Badge>
               </div>
             ))
@@ -1667,6 +1670,15 @@ function buildPreviewPayload(target, prd, tasks) {
     estimate: task.effort,
     team: task.owner,
   }));
+}
+
+function formatExportRecordMeta(record) {
+  const payloadCount = Array.isArray(record.payload) ? record.payload.length : 0;
+  const delivery = Array.isArray(record.delivery) ? record.delivery : [];
+  if (!delivery.length) return `${payloadCount} payload${payloadCount === 1 ? '' : 's'}`;
+  const created = delivery.filter((item) => item.ok).length;
+  const failed = delivery.length - created;
+  return failed ? `${created} created / ${failed} failed` : `${created} created`;
 }
 
 function fallbackGraph() {

@@ -849,6 +849,16 @@ button:disabled {
   font-size: 12px;
 }
 
+.nova-export-history > div > span {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.nova-export-history small {
+  color: var(--muted-foreground);
+}
+
 .nova-prd {
   display: grid;
   gap: 14px;
