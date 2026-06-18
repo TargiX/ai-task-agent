@@ -169,13 +169,14 @@ function nextSteps(blockers) {
     steps.push('Link or create the Vercel project.');
   }
   if (blockers.some((blocker) => blocker.id === 'durable-production-state')) {
+    steps.push('To enable only the workspace guard first, run npm run vercel:env:sync -- --allow-partial --only=WORKSPACE_ACCESS_TOKEN --apply --scope=targixs-projects, then redeploy.');
     steps.push('For Cloudflare D1, run npm run d1:setup -- --name=ai-task-agent --location=apac --write-env.');
     steps.push('For Supabase, apply supabase/migrations/0001_ai_task_agent.sql, set SUPABASE_URL plus SUPABASE_SERVICE_ROLE_KEY, then run npm run supabase:smoke.');
     steps.push('Then run npm run vercel:env:sync -- --apply --scope=targixs-projects and redeploy.');
     steps.push('If reusing an existing database, run npm run d1:migrate and npm run d1:smoke before redeploy.');
     steps.push('Once production secrets are present, run npm run production:launch -- --apply --scope=targixs-projects.');
   }
-  steps.push('Run BASE_URL=https://your-preview.vercel.app npm run production:smoke after deploy.');
+  steps.push('Run BASE_URL=https://your-preview.vercel.app npm run hosted:smoke after deploy, then production:smoke when mutating auth/bypass access is available.');
   return steps;
 }
 

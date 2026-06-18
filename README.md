@@ -225,6 +225,12 @@ npm run vercel:env:sync -- --apply --scope=targixs-projects
 
 `vercel:env:sync` is dry-run by default. With `--apply`, it writes present production variables to both Preview and Production environments through Vercel CLI.
 
+For a scoped preparatory sync, use `--allow-partial --only=<comma-separated env names>`. For example, this enables the workspace access guard before durable storage and provider credentials are ready:
+
+```bash
+npm run vercel:env:sync -- --allow-partial --only=WORKSPACE_ACCESS_TOKEN --apply --scope=targixs-projects
+```
+
 Production env init:
 
 ```bash
