@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.vercel/
+.DS_Store
+.dev-server.log
+.dev-server.pid
+data/*.json
+qa/
+.env
+.env.local
+.env.*.local
+.vercel

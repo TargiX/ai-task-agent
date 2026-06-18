@@ -1,0 +1,11 @@
+node_modules
+dist
+data
+qa
+design
+tests
+.env
+.env.*
+.DS_Store
+.dev-server.log
+.dev-server.pid

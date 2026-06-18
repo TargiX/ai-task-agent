@@ -1,0 +1,17 @@
+[
+  {
+    "id": "feedback-portal",
+    "idea": "A lightweight customer feedback portal for B2B SaaS teams. Users submit feature requests, product managers cluster similar ideas, and approved requests sync into engineering planning.",
+    "mustRetrieve": "customer-feedback-domain"
+  },
+  {
+    "id": "billing-ops",
+    "idea": "A billing operations assistant for SaaS finance teams that reviews failed subscription payments, drafts recovery tasks, and waits for manager approval before customer-facing actions.",
+    "mustRetrieve": "billing-domain"
+  },
+  {
+    "id": "analytics-review",
+    "idea": "An analytics review workspace where product teams inspect dashboard anomalies, define metric changes, and export approved investigation tasks to engineering.",
+    "mustRetrieve": "analytics-domain"
+  }
+]
