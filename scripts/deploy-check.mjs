@@ -1,10 +1,14 @@
-import fs from 'node:fs/promises';
+import fs from 'node:fs';
+import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import '../lib/env.js';
 import { preflightStatus } from '../lib/domain.js';
 
 const cwd = process.cwd();
+const args = parseArgs(process.argv.slice(2));
+const envFile = path.resolve(args.from || '.env.production.local');
+loadDotEnvIfExists(envFile);
 const preflight = preflightStatus();
 const vercelCli = await findVercelCli();
 const vercelVersion = vercelCli ? run(vercelCli, ['--version']) : { ok: false, stdout: '', stderr: '' };
@@ -89,6 +93,7 @@ const report = {
   ok: blockers.length === 0,
   service: 'ai-task-agent',
   cwd,
+  envFile,
   provider: preflight.provider,
   blockers: blockers.map(({ id, label, detail }) => ({ id, label, detail })),
   checks,
@@ -110,11 +115,35 @@ function run(command, args) {
 
 async function readJsonIfExists(filePath) {
   try {
-    return JSON.parse(await fs.readFile(filePath, 'utf8'));
+    return JSON.parse(await fsp.readFile(filePath, 'utf8'));
   } catch (error) {
     if (error.code === 'ENOENT') return null;
     throw error;
   }
+}
+
+function loadDotEnvIfExists(filePath) {
+  try {
+    const body = fs.readFileSync(filePath, 'utf8');
+    for (const line of body.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const equalsAt = trimmed.indexOf('=');
+      if (equalsAt <= 0) continue;
+      const key = trimmed.slice(0, equalsAt).trim();
+      if (process.env[key] !== undefined) continue;
+      process.env[key] = unquoteEnvValue(trimmed.slice(equalsAt + 1).trim());
+    }
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+}
+
+function unquoteEnvValue(value) {
+  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+    return value.slice(1, -1);
+  }
+  return value;
 }
 
 async function findVercelCli() {
@@ -148,4 +177,14 @@ function nextSteps(blockers) {
   }
   steps.push('Run BASE_URL=https://your-preview.vercel.app npm run production:smoke after deploy.');
   return steps;
+}
+
+function parseArgs(argv) {
+  const parsed = {};
+  for (const arg of argv) {
+    if (!arg.startsWith('--')) continue;
+    const [key, value] = arg.slice(2).split('=');
+    parsed[key] = value ?? true;
+  }
+  return parsed;
 }

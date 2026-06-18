@@ -36,7 +36,7 @@ const missing = {
   workspaceAccess: ['WORKSPACE_ACCESS_TOKEN'].filter((name) => !values[name]?.trim()),
   durableStorage: hasCloudflareRuntime || hasCloudflareCreate || hasSupabaseRuntime ? [] : ['DURABLE_STORAGE'],
   liveLlm:
-    values.LANGGRAPH_BACKEND_URL ||
+    hasProductionLangGraph(values.LANGGRAPH_BACKEND_URL) ||
     values.OPENROUTER_API_KEY ||
     values.OPENAI_API_KEY ||
     (values.FREELLMAPI_BASE_URL && values.FREELLMAPI_API_KEY)
@@ -105,9 +105,7 @@ if (!apply) {
         blockers,
         acceptedSecretSets,
         commands: plan.map(([command, commandArgs]) => `${command} ${commandArgs.join(' ')}`),
-        next: blockers.length
-          ? 'Fill WORKSPACE_ACCESS_TOKEN, durable storage, one live LLM set, and one issue export set, then rerun npm run production:launch -- --apply.'
-          : 'Run npm run production:launch -- --apply to execute this release path.',
+        next: blockers.length ? formatMissingNext(blockers) : 'Run npm run production:launch -- --apply to execute this release path.',
       },
       null,
       2,
@@ -187,6 +185,16 @@ function unquoteEnvValue(value) {
   return value;
 }
 
+function hasProductionLangGraph(value) {
+  if (!value?.trim()) return false;
+  try {
+    const url = new URL(value);
+    return !['localhost', '127.0.0.1', '0.0.0.0', '::1'].includes(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
 function findVercelCli() {
   const candidates = [
     process.env.VERCEL_CLI,
@@ -206,6 +214,16 @@ function findDeploymentUrl(output) {
   const jsonUrl = output.match(/"url":\s*"(https:\/\/[^"]+\.vercel\.app)"/)?.[1];
   if (jsonUrl) return jsonUrl;
   return output.match(/https:\/\/[a-z0-9-]+\.vercel\.app/i)?.[0] || '';
+}
+
+function formatMissingNext(items) {
+  const groups = new Set(items.map((item) => item.group));
+  const parts = [];
+  if (groups.has('workspace-access')) parts.push('WORKSPACE_ACCESS_TOKEN');
+  if (groups.has('durable-storage')) parts.push('durable storage credentials');
+  if (groups.has('live-llm')) parts.push('one live LLM credential set');
+  if (groups.has('issue-export')) parts.push('one issue export credential set');
+  return `Fill ${parts.join(', ')}, then rerun npm run production:launch -- --apply.`;
 }
 
 function parseArgs(argv) {

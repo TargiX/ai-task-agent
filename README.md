@@ -225,6 +225,16 @@ npm run vercel:env:sync -- --apply --scope=targixs-projects
 
 `vercel:env:sync` is dry-run by default. With `--apply`, it writes present production variables to both Preview and Production environments through Vercel CLI.
 
+Production env init:
+
+```bash
+npm run production:env:init
+```
+
+This creates `.env.production.local` from `.env.example` when needed, generates a private `WORKSPACE_ACCESS_TOKEN`, preserves existing secrets, and reports only the remaining external credential groups. Use `-- --rotate-workspace-token` only when you intentionally want to invalidate the old workspace access token.
+
+`deploy:check` reads `.env.production.local` by default, so the readiness doctor and `production:launch` report against the same production env source. Pass `-- --from=/path/to/env` to check a different env file.
+
 Reference docs:
 
 - [Cloudflare D1 overview](https://developers.cloudflare.com/d1/)
