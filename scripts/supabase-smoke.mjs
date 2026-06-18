@@ -40,21 +40,18 @@ console.log(
 function assertSupabaseEnv() {
   const url = process.env.SUPABASE_URL?.trim();
   const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  const publishable = process.env.SUPABASE_PUBLISHABLE_KEY?.trim();
-  const anon = process.env.SUPABASE_ANON_KEY?.trim();
   if (!url) throw new Error('Missing SUPABASE_URL.');
   try {
     new URL(url);
   } catch {
     throw new Error('SUPABASE_URL is not a valid URL.');
   }
-  const key = serviceRole || publishable || anon;
-  if (!key) {
-    throw new Error('Missing Supabase key. Set SUPABASE_SERVICE_ROLE_KEY, SUPABASE_PUBLISHABLE_KEY, or SUPABASE_ANON_KEY.');
+  if (!serviceRole) {
+    throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY for the server-side storage adapter.');
   }
   return {
     url,
-    key,
-    keyType: serviceRole ? 'service-role' : publishable ? 'publishable' : 'anon',
+    key: serviceRole,
+    keyType: 'service-role',
   };
 }

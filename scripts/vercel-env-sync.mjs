@@ -3,12 +3,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const CLOUDFLARE_ENV_VARS = ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_D1_DATABASE_ID', 'CLOUDFLARE_API_TOKEN'];
-const SUPABASE_ENV_VARS = [
-  'SUPABASE_URL',
-  'SUPABASE_SERVICE_ROLE_KEY',
-  'SUPABASE_PUBLISHABLE_KEY',
-  'SUPABASE_ANON_KEY',
-];
+const SUPABASE_ENV_VARS = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
 const PRODUCTION_ENV_VARS = [
   ...CLOUDFLARE_ENV_VARS,
   ...SUPABASE_ENV_VARS,
@@ -42,13 +37,11 @@ const values = {
   ...pickProcessEnv(PRODUCTION_ENV_VARS),
 };
 const hasCloudflare = CLOUDFLARE_ENV_VARS.every((name) => values[name]?.trim());
-const hasSupabase =
-  values.SUPABASE_URL &&
-  (values.SUPABASE_SERVICE_ROLE_KEY || values.SUPABASE_PUBLISHABLE_KEY || values.SUPABASE_ANON_KEY);
+const hasSupabase = values.SUPABASE_URL && values.SUPABASE_SERVICE_ROLE_KEY;
 const missingRequired =
   hasCloudflare || hasSupabase
     ? []
-    : ['CLOUDFLARE_D1_DATABASE_ID or SUPABASE_URL', 'CLOUDFLARE_API_TOKEN or SUPABASE_*_KEY'];
+    : ['CLOUDFLARE_D1_DATABASE_ID or SUPABASE_URL', 'CLOUDFLARE_API_TOKEN or SUPABASE_SERVICE_ROLE_KEY'];
 const present = PRODUCTION_ENV_VARS.filter((name) => values[name]?.trim());
 const commands = [];
 

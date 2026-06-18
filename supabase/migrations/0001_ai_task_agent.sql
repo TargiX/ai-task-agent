@@ -1,5 +1,5 @@
 create table if not exists public.agent_workspaces (
-  id uuid primary key,
+  id text primary key,
   name text not null,
   current_run_id uuid,
   created_at timestamptz not null default now(),
@@ -8,7 +8,7 @@ create table if not exists public.agent_workspaces (
 
 create table if not exists public.agent_runs (
   id uuid primary key,
-  workspace_id uuid not null references public.agent_workspaces(id) on delete cascade,
+  workspace_id text not null references public.agent_workspaces(id) on delete cascade,
   idea text not null,
   status text not null default 'planned',
   graph jsonb not null default '[]'::jsonb,
@@ -100,38 +100,65 @@ alter table public.agent_tasks enable row level security;
 alter table public.agent_tool_calls enable row level security;
 alter table public.agent_exports enable row level security;
 
-create policy "demo_agent_workspaces_all"
+revoke all on table public.agent_workspaces from anon, authenticated;
+revoke all on table public.agent_runs from anon, authenticated;
+revoke all on table public.agent_prds from anon, authenticated;
+revoke all on table public.agent_tasks from anon, authenticated;
+revoke all on table public.agent_tool_calls from anon, authenticated;
+revoke all on table public.agent_exports from anon, authenticated;
+
+grant select, insert, update, delete on table public.agent_workspaces to service_role;
+grant select, insert, update, delete on table public.agent_runs to service_role;
+grant select, insert, update, delete on table public.agent_prds to service_role;
+grant select, insert, update, delete on table public.agent_tasks to service_role;
+grant select, insert, update, delete on table public.agent_tool_calls to service_role;
+grant select, insert, update, delete on table public.agent_exports to service_role;
+
+drop policy if exists "demo_agent_workspaces_all" on public.agent_workspaces;
+drop policy if exists "demo_agent_runs_all" on public.agent_runs;
+drop policy if exists "demo_agent_prds_all" on public.agent_prds;
+drop policy if exists "demo_agent_tasks_all" on public.agent_tasks;
+drop policy if exists "demo_agent_tool_calls_all" on public.agent_tool_calls;
+drop policy if exists "demo_agent_exports_all" on public.agent_exports;
+
+create policy "server_agent_workspaces_all"
   on public.agent_workspaces
   for all
+  to service_role
   using (true)
   with check (true);
 
-create policy "demo_agent_runs_all"
+create policy "server_agent_runs_all"
   on public.agent_runs
   for all
+  to service_role
   using (true)
   with check (true);
 
-create policy "demo_agent_prds_all"
+create policy "server_agent_prds_all"
   on public.agent_prds
   for all
+  to service_role
   using (true)
   with check (true);
 
-create policy "demo_agent_tasks_all"
+create policy "server_agent_tasks_all"
   on public.agent_tasks
   for all
+  to service_role
   using (true)
   with check (true);
 
-create policy "demo_agent_tool_calls_all"
+create policy "server_agent_tool_calls_all"
   on public.agent_tool_calls
   for all
+  to service_role
   using (true)
   with check (true);
 
-create policy "demo_agent_exports_all"
+create policy "server_agent_exports_all"
   on public.agent_exports
   for all
+  to service_role
   using (true)
   with check (true);

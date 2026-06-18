@@ -141,7 +141,7 @@ function nextSteps(blockers) {
   }
   if (blockers.some((blocker) => blocker.id === 'durable-production-state')) {
     steps.push('For Cloudflare D1, run npm run d1:setup -- --name=ai-task-agent --location=apac --write-env.');
-    steps.push('For Supabase, apply supabase/migrations/0001_ai_task_agent.sql, set SUPABASE_URL plus a server-side key, then run npm run supabase:smoke.');
+    steps.push('For Supabase, apply supabase/migrations/0001_ai_task_agent.sql, set SUPABASE_URL plus SUPABASE_SERVICE_ROLE_KEY, then run npm run supabase:smoke.');
     steps.push('Then run npm run vercel:env:sync -- --apply --scope=targixs-projects and redeploy.');
     steps.push('If reusing an existing database, run npm run d1:migrate and npm run d1:smoke before redeploy.');
     steps.push('Once production secrets are present, run npm run production:launch -- --apply --scope=targixs-projects.');

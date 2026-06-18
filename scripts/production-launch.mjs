@@ -14,8 +14,6 @@ const values = {
     'CLOUDFLARE_API_TOKEN',
     'SUPABASE_URL',
     'SUPABASE_SERVICE_ROLE_KEY',
-    'SUPABASE_PUBLISHABLE_KEY',
-    'SUPABASE_ANON_KEY',
     'LANGGRAPH_BACKEND_URL',
     'OPENROUTER_API_KEY',
     'FREELLMAPI_BASE_URL',
@@ -32,9 +30,7 @@ const values = {
 const hasCloudflareRuntime =
   values.CLOUDFLARE_ACCOUNT_ID && values.CLOUDFLARE_D1_DATABASE_ID && values.CLOUDFLARE_API_TOKEN;
 const hasCloudflareCreate = values.CLOUDFLARE_ACCOUNT_ID && values.CLOUDFLARE_API_TOKEN;
-const hasSupabaseRuntime =
-  values.SUPABASE_URL &&
-  (values.SUPABASE_SERVICE_ROLE_KEY || values.SUPABASE_PUBLISHABLE_KEY || values.SUPABASE_ANON_KEY);
+const hasSupabaseRuntime = values.SUPABASE_URL && values.SUPABASE_SERVICE_ROLE_KEY;
 const storageMode = hasSupabaseRuntime ? 'supabase' : 'cloudflare-d1';
 const missing = {
   workspaceAccess: ['WORKSPACE_ACCESS_TOKEN'].filter((name) => !values[name]?.trim()),
@@ -63,8 +59,6 @@ const acceptedSecretSets = {
     ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_D1_DATABASE_ID', 'CLOUDFLARE_API_TOKEN'],
     ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_API_TOKEN'],
     ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'],
-    ['SUPABASE_URL', 'SUPABASE_PUBLISHABLE_KEY'],
-    ['SUPABASE_URL', 'SUPABASE_ANON_KEY'],
   ],
   cloudflareCreate: [['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_API_TOKEN']],
   cloudflareRuntime: [['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_D1_DATABASE_ID', 'CLOUDFLARE_API_TOKEN']],

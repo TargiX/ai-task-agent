@@ -149,7 +149,7 @@ Storage mode:
 - `json` locally when durable storage env vars are absent.
 - `json` on Vercel writes to `/tmp` and is only a volatile demo fallback.
 - `cloudflare-d1` when `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_D1_DATABASE_ID`, and `CLOUDFLARE_API_TOKEN` are set.
-- `supabase` when `SUPABASE_URL` and one of `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_PUBLISHABLE_KEY`, or `SUPABASE_ANON_KEY` is set.
+- `supabase` when `SUPABASE_URL` and server-only `SUPABASE_SERVICE_ROLE_KEY` are set.
 
 LLM priority:
 
@@ -174,7 +174,7 @@ The schema uses normalized tables:
 - `agent_tool_calls`
 - `agent_exports`
 
-RLS is enabled on all public tables. Prefer `SUPABASE_SERVICE_ROLE_KEY` server-side only. For a public demo, publishable/anon keys can work if the demo policies in the migration are enabled.
+RLS is enabled on all public tables. The migration revokes `anon` and `authenticated` table access and grants the app tables only to `service_role`, so keep `SUPABASE_SERVICE_ROLE_KEY` server-side only. Do not expose it through `NEXT_PUBLIC_`, `VITE_`, or client-rendered config.
 
 Supabase verification path:
 
