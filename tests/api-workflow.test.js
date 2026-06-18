@@ -239,6 +239,102 @@ test('batch approval moves pending tasks through the human gate for export', asy
   assert.equal(exportRun.body.exports[0].payload.length, pendingIds.length);
 });
 
+test('real issue export is idempotent and only sends newly approved tasks', async () => {
+  await isolateJsonStorage();
+  process.env.GITHUB_TOKEN = 'github-token';
+  process.env.GITHUB_REPOSITORY = 'owner/repo';
+  const previousFetch = global.fetch;
+  const calls = [];
+  global.fetch = async (url, options = {}) => {
+    calls.push({ url, options, body: options.body ? JSON.parse(options.body) : null });
+    return {
+      ok: true,
+      status: 201,
+      json: async () => ({
+        id: calls.length,
+        number: calls.length,
+        html_url: `https://github.com/owner/repo/issues/${calls.length}`,
+      }),
+    };
+  };
+
+  try {
+    const run = await handleApiRequest({
+      method: 'POST',
+      pathname: '/api/agent/run',
+      body: { idea },
+    });
+    const [first, second, third] = run.body.tasks;
+
+    await handleApiRequest({
+      method: 'PATCH',
+      pathname: '/api/tasks/batch',
+      body: {
+        taskIds: [first.id, second.id],
+        status: 'approved',
+        reviewNote: 'Ready for first GitHub export.',
+      },
+    });
+
+    const firstExport = await handleApiRequest({
+      method: 'POST',
+      pathname: '/api/export',
+      body: { target: 'GitHub' },
+    });
+    assert.equal(firstExport.status, 200);
+    assert.equal(firstExport.body.exports[0].status, 'created');
+    assert.equal(firstExport.body.exports[0].payload.length, 2);
+    assert.equal(firstExport.body.exports[0].payload[0].sourceTaskId, first.id);
+    assert.equal(firstExport.body.exports[0].delivery[0].sourceTaskId, first.id);
+    assert.equal(calls.length, 2);
+    assert.equal(calls[0].body.sourceTaskId, undefined);
+
+    const duplicateExport = await handleApiRequest({
+      method: 'POST',
+      pathname: '/api/export',
+      body: { target: 'GitHub' },
+    });
+    assert.equal(duplicateExport.status, 409);
+    assert.match(duplicateExport.body.error, /already been exported/i);
+    assert.equal(calls.length, 2);
+
+    const blockedPackage = await handleApiRequest({
+      method: 'GET',
+      pathname: '/api/export-package',
+      query: { target: 'GitHub' },
+    });
+    assert.equal(blockedPackage.body.status, 'blocked');
+    assert.equal(blockedPackage.body.summary.pendingExportCount, 0);
+    assert.equal(blockedPackage.body.summary.exportedCount, 2);
+
+    await handleApiRequest({
+      method: 'PATCH',
+      pathname: `/api/tasks/${encodeURIComponent(third.id)}`,
+      body: { status: 'approved', reviewNote: 'Ready for incremental export.' },
+    });
+    const incrementalPackage = await handleApiRequest({
+      method: 'GET',
+      pathname: '/api/export-package',
+      query: { target: 'GitHub' },
+    });
+    assert.equal(incrementalPackage.body.status, 'ready');
+    assert.equal(incrementalPackage.body.payload.length, 1);
+    assert.equal(incrementalPackage.body.payload[0].sourceTaskId, third.id);
+
+    const secondExport = await handleApiRequest({
+      method: 'POST',
+      pathname: '/api/export',
+      body: { target: 'GitHub' },
+    });
+    assert.equal(secondExport.status, 200);
+    assert.equal(secondExport.body.exports[0].payload.length, 1);
+    assert.equal(secondExport.body.exports[0].payload[0].sourceTaskId, third.id);
+    assert.equal(calls.length, 3);
+  } finally {
+    global.fetch = previousFetch;
+  }
+});
+
 test('run history keeps previous agent runs and can resume one as current', async () => {
   await isolateJsonStorage();
   const first = await handleApiRequest({

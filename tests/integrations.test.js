@@ -10,6 +10,7 @@ test('GitHub export creates issues with repository, token, labels, and body', as
   const result = await createGitHubIssues(
     [
       {
+        sourceTaskId: 'TASK-1',
         title: 'Build agent planning endpoint',
         body: 'Acceptance criteria',
         labels: ['ai-task-agent', 'ai'],
@@ -32,10 +33,12 @@ test('GitHub export creates issues with repository, token, labels, and body', as
   assert.equal(calls[0].options.method, 'POST');
   assert.equal(calls[0].options.headers.authorization, 'Bearer gh_token');
   assert.deepEqual(calls[0].body.labels, ['ai-task-agent', 'ai']);
+  assert.equal(calls[0].body.sourceTaskId, undefined);
   assert.deepEqual(result, [
     {
       ok: true,
       title: 'Build agent planning endpoint',
+      sourceTaskId: 'TASK-1',
       id: 123,
       number: 42,
       url: 'https://github.com/owner/repo/issues/42',
@@ -65,6 +68,7 @@ test('Linear export creates enriched GraphQL issue payloads', async () => {
   const result = await createLinearIssues(
     [
       {
+        sourceTaskId: 'TASK-9',
         title: 'Implement human approval queue',
         description: 'Users can approve generated tasks.',
         priority: 'High',
@@ -98,8 +102,10 @@ test('Linear export creates enriched GraphQL issue payloads', async () => {
   assert.match(calls[0].body.variables.input.description, /Priority: High/);
   assert.match(calls[0].body.variables.input.description, /Estimate: 3 pts/);
   assert.match(calls[0].body.variables.input.description, /Labels: ai-task-agent, frontend/);
+  assert.doesNotMatch(calls[0].body.variables.input.description, /sourceTaskId/);
   assert.equal(result[0].ok, true);
   assert.equal(result[0].identifier, 'ENG-12');
+  assert.equal(result[0].sourceTaskId, 'TASK-9');
 });
 
 test('Linear export reports GraphQL errors per issue', async () => {

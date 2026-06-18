@@ -253,7 +253,7 @@ function App() {
 
   useEffect(() => {
     setExportPackage(null);
-  }, [exportTarget, workspace.runId, counts.approved, counts.rejected, counts.total]);
+  }, [exportTarget, workspace.runId, counts.approved, counts.rejected, counts.total, exports.length]);
 
   async function refreshWorkspace() {
     setBusyAction('loading');
@@ -522,6 +522,7 @@ function App() {
         body: JSON.stringify({ target: exportTarget }),
       });
       setWorkspace(nextWorkspace);
+      setExportPackage(null);
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -1503,7 +1504,7 @@ function ExportPanel({
         <div className="nova-package-meta">
           <span>
             {exportPackage
-              ? `${exportPackage.summary.approvedCount} approved issues ready`
+              ? `${exportPackage.summary.pendingExportCount ?? exportPackage.summary.approvedCount} issues ready for export`
               : canExport
                 ? 'Approved tasks can be packaged before API export.'
                 : 'Approve at least one task to unlock issue export.'}

@@ -20,7 +20,7 @@ try {
   await desktop.locator('.nova-task-cell strong').first().waitFor({ timeout: 10_000 });
   await desktop.getByRole('button', { name: /Approve pending/i }).click();
   await desktop.getByRole('button', { name: /Prepare package/i }).click();
-  await desktop.getByText('5 approved issues ready').waitFor();
+  await desktop.getByText('5 issues ready for export').waitFor();
   await desktop.getByRole('button', { name: /^Download$/ }).waitFor();
   await desktop.locator('.nova-export').getByText('Connector verification').waitFor();
   await desktop.locator('.nova-export').getByRole('button', { name: /^Verify$/ }).click();
