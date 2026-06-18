@@ -92,6 +92,8 @@ const plan = [
   ['npm', ['run', 'vercel:env:sync', '--', '--apply', `--scope=${scope}`]],
   [findVercelCli(), ['deploy', '--yes', '--scope', scope]],
 ];
+const hostedSmokePreviewCommand =
+  'BASE_URL=<deployment-url> REQUIRE_DURABLE=1 REQUIRE_LIVE_LLM=1 REQUIRE_ISSUE_EXPORT=1 REQUIRE_ACCESS_GUARD=1 npm run hosted:smoke';
 
 if (!apply) {
   console.log(
@@ -104,7 +106,7 @@ if (!apply) {
         storageMode,
         blockers,
         acceptedSecretSets,
-        commands: plan.map(([command, commandArgs]) => `${command} ${commandArgs.join(' ')}`),
+        commands: [...plan.map(([command, commandArgs]) => `${command} ${commandArgs.join(' ')}`), hostedSmokePreviewCommand],
         next: blockers.length ? formatMissingNext(blockers) : 'Run npm run production:launch -- --apply to execute this release path.',
       },
       null,
@@ -130,14 +132,34 @@ for (const [command, commandArgs] of plan) {
   deploymentUrl = deploymentUrl || findDeploymentUrl(result.stdout);
 }
 
+let hostedSmoke = null;
+if (deploymentUrl && !args['skip-hosted-smoke']) {
+  const smokeEnv = {
+    ...process.env,
+    BASE_URL: deploymentUrl,
+    REQUIRE_DURABLE: '1',
+    REQUIRE_LIVE_LLM: '1',
+    REQUIRE_ISSUE_EXPORT: '1',
+    REQUIRE_ACCESS_GUARD: '1',
+  };
+  const result = run(process.execPath, ['scripts/hosted-smoke.mjs'], { env: smokeEnv });
+  const command = `BASE_URL=${deploymentUrl} REQUIRE_DURABLE=1 REQUIRE_LIVE_LLM=1 REQUIRE_ISSUE_EXPORT=1 REQUIRE_ACCESS_GUARD=1 npm run hosted:smoke`;
+  completed.push({ command, status: result.status });
+  if (result.status !== 0) {
+    throw new Error(`${command} failed:\n${result.stderr || result.stdout}`);
+  }
+  hostedSmoke = parseJsonObject(result.stdout);
+}
+
 console.log(
   JSON.stringify(
     {
       ok: true,
       completed,
       deploymentUrl,
+      hostedSmoke,
       next: deploymentUrl
-        ? `Run BASE_URL=${deploymentUrl} npm run production:smoke. If Vercel protection is enabled, use vercel curl or set VERCEL_AUTOMATION_BYPASS_SECRET.`
+        ? `Hosted smoke passed for ${deploymentUrl}. Run BASE_URL=${deploymentUrl} npm run production:smoke for the full mutating workflow when auth/bypass access is available.`
         : 'Run production smoke against the deployed URL.',
     },
     null,
@@ -145,9 +167,10 @@ console.log(
   ),
 );
 
-function run(command, commandArgs) {
+function run(command, commandArgs, options = {}) {
   const result = spawnSync(command, commandArgs, {
     cwd: process.cwd(),
+    env: options.env || process.env,
     encoding: 'utf8',
     stdio: ['inherit', 'pipe', 'pipe'],
   });
@@ -214,6 +237,13 @@ function findDeploymentUrl(output) {
   const jsonUrl = output.match(/"url":\s*"(https:\/\/[^"]+\.vercel\.app)"/)?.[1];
   if (jsonUrl) return jsonUrl;
   return output.match(/https:\/\/[a-z0-9-]+\.vercel\.app/i)?.[0] || '';
+}
+
+function parseJsonObject(output) {
+  const start = output.indexOf('{');
+  const end = output.lastIndexOf('}');
+  if (start < 0 || end <= start) return null;
+  return JSON.parse(output.slice(start, end + 1));
 }
 
 function formatMissingNext(items) {

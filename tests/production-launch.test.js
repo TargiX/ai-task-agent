@@ -58,6 +58,7 @@ test('production launch dry-run accepts LangGraph as the live planner provider',
   assert.deepEqual(report.acceptedSecretSets.liveLlm.at(-1), ['LANGGRAPH_BACKEND_URL']);
   assert.ok(report.commands.some((command) => command.includes('d1:setup')));
   assert.ok(report.commands.some((command) => command.includes('vercel deploy')));
+  assert.ok(report.commands.some((command) => command.includes('hosted:smoke')));
 });
 
 test('production launch dry-run accepts Supabase as durable storage', async () => {

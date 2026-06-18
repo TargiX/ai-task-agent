@@ -235,6 +235,14 @@ This creates `.env.production.local` from `.env.example` when needed, generates 
 
 `deploy:check` reads `.env.production.local` by default, so the readiness doctor and `production:launch` report against the same production env source. Pass `-- --from=/path/to/env` to check a different env file.
 
+Hosted smoke:
+
+```bash
+BASE_URL=https://your-preview.vercel.app npm run hosted:smoke
+```
+
+`hosted:smoke` validates health, preflight, setup verification, read-only integration verification, model discovery, and the dry-run demo report. For protected Vercel previews it automatically uses `vercel curl`, so Vercel Authentication can stay enabled. `production:launch -- --apply` runs this hosted smoke after deployment with durable storage, live LLM, issue export, and workspace access guard required.
+
 Reference docs:
 
 - [Cloudflare D1 overview](https://developers.cloudflare.com/d1/)

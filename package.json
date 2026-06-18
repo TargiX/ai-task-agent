@@ -15,6 +15,7 @@
     "stress:smoke": "node scripts/stress-smoke.mjs",
     "visual:smoke": "node scripts/visual-smoke.mjs",
     "deploy:check": "node scripts/deploy-check.mjs",
+    "hosted:smoke": "node scripts/hosted-smoke.mjs",
     "d1:setup": "node scripts/d1-setup.mjs",
     "d1:migrate": "node scripts/d1-migrate.mjs",
     "d1:smoke": "node scripts/d1-smoke.mjs",
