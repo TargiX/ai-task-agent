@@ -19,7 +19,7 @@ User product idea
 
 The important distinction is that side-effect actions are gated. The agent can plan, validate, persist draft tasks, and prepare export payloads, but issue creation only resumes after human approval.
 Each run is also kept in history and can be resumed later as the active workspace.
-The UI and API also accept a workspace key so separate teams can keep isolated run history and approval state during demos and early production pilots.
+The UI and API also accept a workspace key so separate teams can keep isolated run history and approval state during demos and early production pilots. In production, set `WORKSPACE_ACCESS_TOKEN` so workspace data routes require a shared access token.
 
 ## Code Tour
 
@@ -33,12 +33,14 @@ The UI and API also accept a workspace key so separate teams can keep isolated r
   - Production preflight and setup state
   - Run history and resume controls
   - Workspace key switcher for isolated team workspaces
+  - Access token control for guarded production previews
 
 - Node API runtime: `lib/agent-runtime.js`, `lib/api-core.js`
   - Runs the default agent workflow used by Vercel functions.
   - Streams graph/log events from `POST /api/agent/stream`.
   - Persists runs through JSON, Supabase, or Cloudflare D1 storage.
   - Scopes storage by `x-ai-task-agent-workspace`.
+  - Guards workspace data routes with `WORKSPACE_ACCESS_TOKEN` when configured.
   - Blocks export until at least one task is approved.
   - Exposes `GET /api/runs` and `POST /api/runs/select` for checkpoint-style resume.
 

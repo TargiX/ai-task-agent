@@ -7,7 +7,7 @@ assert(health.ok === true, 'health.ok must be true');
 assert(health.service === 'ai-task-agent', 'health.service must be ai-task-agent');
 
 const preflight = await getJson('/api/preflight');
-assert(preflight.summary?.total === 5, 'preflight must report 5 checks');
+assert(preflight.summary?.total === 6, 'preflight must report 6 checks');
 assert(
   preflight.capabilities?.some((item) => item.id === 'rag-memory' && item.status === 'ready'),
   'preflight must report RAG/memory ready',

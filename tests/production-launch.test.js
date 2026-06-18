@@ -17,6 +17,7 @@ test('production launch dry-run accepts LangGraph as the live planner provider',
     LANGGRAPH_BACKEND_URL: 'https://agent-backend.example.com',
     GITHUB_TOKEN: 'github-token',
     GITHUB_REPOSITORY: 'targix/ai-task-agent',
+    WORKSPACE_ACCESS_TOKEN: 'workspace-access-token',
   });
 
   assert.equal(result.status, 0, result.stderr);

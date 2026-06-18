@@ -3,6 +3,7 @@ const exportTarget = process.env.EXPORT_TARGET || 'Linear';
 const requireDurable = process.env.REQUIRE_DURABLE !== '0';
 const requireLiveLlm = process.env.REQUIRE_LIVE_LLM === '1';
 const requireIssueExport = process.env.REQUIRE_ISSUE_EXPORT === '1';
+const requireAccessGuard = process.env.REQUIRE_ACCESS_GUARD === '1';
 const idea =
   process.env.SMOKE_IDEA ||
   'A customer feedback portal for SaaS teams that turns product requests into approved engineering tasks.';
@@ -40,6 +41,9 @@ if (requireIssueExport) {
     'at least one issue export provider must be configured',
   );
   assert(integrationVerify.ok === true, 'at least one issue export provider must pass read-only verification');
+}
+if (requireAccessGuard) {
+  assert(preflight.provider?.access === 'guarded', 'workspace access guard must be configured');
 }
 
 await request('/api/workspace', { method: 'DELETE' });

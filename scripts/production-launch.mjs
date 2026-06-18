@@ -21,10 +21,12 @@ const values = {
     'LINEAR_TEAM_ID',
     'GITHUB_TOKEN',
     'GITHUB_REPOSITORY',
+    'WORKSPACE_ACCESS_TOKEN',
     'VERCEL_AUTOMATION_BYPASS_SECRET',
   ]),
 };
 const missing = {
+  workspaceAccess: ['WORKSPACE_ACCESS_TOKEN'].filter((name) => !values[name]?.trim()),
   cloudflareCreate: ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_API_TOKEN'].filter((name) => !values[name]?.trim()),
   cloudflareRuntime: ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_D1_DATABASE_ID', 'CLOUDFLARE_API_TOKEN'].filter(
     (name) => !values[name]?.trim(),
@@ -42,12 +44,14 @@ const missing = {
       : ['LINEAR_API_KEY', 'LINEAR_TEAM_ID', 'GITHUB_TOKEN', 'GITHUB_REPOSITORY'],
 };
 const blockers = [
+  ...missing.workspaceAccess.map((name) => ({ group: 'workspace-access', name })),
   ...missing.cloudflareCreate.map((name) => ({ group: 'cloudflare-create', name })),
   ...missing.cloudflareRuntime.map((name) => ({ group: 'cloudflare-runtime', name })),
   ...missing.liveLlm.map((name) => ({ group: 'live-llm', name })),
   ...missing.issueExport.map((name) => ({ group: 'issue-export', name })),
 ];
 const acceptedSecretSets = {
+  workspaceAccess: [['WORKSPACE_ACCESS_TOKEN']],
   cloudflareCreate: [['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_API_TOKEN']],
   cloudflareRuntime: [['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_D1_DATABASE_ID', 'CLOUDFLARE_API_TOKEN']],
   liveLlm: [
@@ -84,7 +88,7 @@ if (!apply) {
         acceptedSecretSets,
         commands: plan.map(([command, commandArgs]) => `${command} ${commandArgs.join(' ')}`),
         next: blockers.length
-          ? 'Fill Cloudflare D1 plus one live LLM set plus one issue export set, then rerun npm run production:launch -- --apply.'
+          ? 'Fill WORKSPACE_ACCESS_TOKEN, Cloudflare D1, one live LLM set, and one issue export set, then rerun npm run production:launch -- --apply.'
           : 'Run npm run production:launch -- --apply to execute this release path.',
       },
       null,

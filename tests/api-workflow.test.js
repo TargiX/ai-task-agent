@@ -25,7 +25,7 @@ test('agent workflow creates PRD/tasks, enforces approval, then exports issues',
 
   const preflight = await handleApiRequest({ method: 'GET', pathname: '/api/preflight' });
   assert.equal(preflight.status, 200);
-  assert.equal(preflight.body.summary.total, 5);
+  assert.equal(preflight.body.summary.total, 6);
   assert.equal(preflight.body.checks.find((check) => check.id === 'agent-runtime').status, 'ready');
   assert.equal(preflight.body.checks.find((check) => check.id === 'ai-provider').status, 'fallback');
   assert.equal(preflight.body.checks.find((check) => check.id === 'storage').status, 'fallback');
@@ -84,7 +84,7 @@ test('agent workflow creates PRD/tasks, enforces approval, then exports issues',
   assert.equal(health.status, 200);
   assert.equal(health.body.ok, true);
   assert.equal(health.body.service, 'ai-task-agent');
-  assert.equal(health.body.readiness.total, 5);
+  assert.equal(health.body.readiness.total, 6);
   assert.equal(health.body.provider.ai, 'local-planner');
 
   const run = await handleApiRequest({
@@ -314,6 +314,39 @@ test('workspace header isolates active runs and run history', async () => {
   assert.equal(crossWorkspaceSelect.status, 404);
 });
 
+test('workspace access token guards data routes when configured', async () => {
+  await isolateJsonStorage();
+  process.env.WORKSPACE_ACCESS_TOKEN = 'secret-token';
+
+  const health = await handleApiRequest({ method: 'GET', pathname: '/api/health' });
+  const preflight = await handleApiRequest({ method: 'GET', pathname: '/api/preflight' });
+  assert.equal(health.status, 200);
+  assert.equal(preflight.status, 200);
+  assert.equal(preflight.body.provider.access, 'guarded');
+  assert.equal(preflight.body.checks.find((check) => check.id === 'workspace-access').status, 'ready');
+
+  const blocked = await handleApiRequest({ method: 'GET', pathname: '/api/workspace' });
+  assert.equal(blocked.status, 401);
+  assert.match(blocked.body.error, /access token/i);
+
+  const allowed = await handleApiRequest({
+    method: 'GET',
+    pathname: '/api/workspace',
+    headers: { authorization: 'Bearer secret-token' },
+  });
+  assert.equal(allowed.status, 200);
+  assert.equal(allowed.body.provider.access, 'guarded');
+
+  const events = [];
+  const stream = await streamAgentRun({
+    body: { idea },
+    writeEvent: async (event) => events.push(event),
+  });
+  assert.equal(stream, null);
+  assert.equal(events[0].type, 'error');
+  assert.match(events[0].message, /access token/i);
+});
+
 test('expected API state errors return structured 4xx responses', async () => {
   await isolateJsonStorage();
 
@@ -376,6 +409,7 @@ async function isolateJsonStorage() {
   delete process.env.LINEAR_TEAM_ID;
   delete process.env.GITHUB_TOKEN;
   delete process.env.GITHUB_REPOSITORY;
+  delete process.env.WORKSPACE_ACCESS_TOKEN;
 
   const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'ai-task-agent-test-'));
   process.env.TASK_AGENT_DB_FILE = path.join(tmpDir, 'task-agent-db.json');

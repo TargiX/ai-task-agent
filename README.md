@@ -76,7 +76,8 @@ Team workspace isolation:
 - Requests may include `x-ai-task-agent-workspace: your-team-key`.
 - Empty, `default`, or no header uses the default workspace.
 - The React UI stores the workspace key locally and sends it with all API and SSE requests.
-- This isolates runs, PRDs, tasks, approvals, exports, and run history per workspace. It is not a replacement for production user authentication.
+- This isolates runs, PRDs, tasks, approvals, exports, and run history per workspace.
+- Set `WORKSPACE_ACCESS_TOKEN` to require `x-ai-task-agent-access-token` or `Authorization: Bearer <token>` for workspace data routes. `GET /api/health` and `GET /api/preflight` remain public readiness endpoints.
 
 - `GET /api/workspace` returns PRD, tasks, graph trace, logs, exports, and provider status.
 - `GET /api/runs` returns persisted run summaries for resume/history.
@@ -228,6 +229,7 @@ It also returns a capability matrix that maps the original agentic-demo scope to
 
 Set environment variables from `.env.example` to enable:
 
+- Workspace access guard with `WORKSPACE_ACCESS_TOKEN`
 - OpenRouter generation with `OPENROUTER_API_KEY`
 - FreeLLMAPI-compatible proxy with `FREELLMAPI_BASE_URL` and `FREELLMAPI_API_KEY`
 - OpenAI Responses API generation with `OPENAI_API_KEY`
@@ -254,6 +256,7 @@ Implemented:
 - Local JSON storage plus Supabase and Cloudflare D1 storage adapters and schemas.
 - Run history and resume across JSON, Supabase, and Cloudflare D1 storage.
 - Workspace-key isolation for team runs across JSON, Supabase, and Cloudflare D1 storage.
+- Optional workspace access token guard for production previews and pilots.
 - Repeatable D1 migration, D1 smoke, Vercel env sync, and production smoke commands.
 - Dry-run/apply production launch orchestration for tests, D1 setup, Vercel env sync, deploy, and final smoke handoff.
 - Human approval gate before export.

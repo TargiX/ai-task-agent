@@ -85,6 +85,7 @@ const skillStack = [
   'Linear/GitHub export',
 ];
 const workspaceStorageKey = 'ai-task-agent.workspaceId';
+const accessTokenStorageKey = 'ai-task-agent.accessToken';
 
 function emptyWorkspace() {
   return {
@@ -123,12 +124,25 @@ async function api(path, options = {}) {
 }
 
 function workspaceHeader() {
-  return { 'x-ai-task-agent-workspace': currentWorkspaceKey() };
+  return {
+    'x-ai-task-agent-workspace': currentWorkspaceKey(),
+    ...accessTokenHeader(),
+  };
+}
+
+function accessTokenHeader() {
+  const token = currentAccessToken();
+  return token ? { 'x-ai-task-agent-access-token': token } : {};
 }
 
 function currentWorkspaceKey() {
   if (typeof localStorage === 'undefined') return 'default';
   return normalizeClientWorkspaceKey(localStorage.getItem(workspaceStorageKey) || 'default');
+}
+
+function currentAccessToken() {
+  if (typeof localStorage === 'undefined') return '';
+  return localStorage.getItem(accessTokenStorageKey)?.trim() || '';
 }
 
 function normalizeClientWorkspaceKey(value) {
@@ -190,6 +204,7 @@ function App() {
   const [error, setError] = useState('');
   const [workspaceKey, setWorkspaceKey] = useState(currentWorkspaceKey());
   const [workspaceDraft, setWorkspaceDraft] = useState(currentWorkspaceKey());
+  const [accessTokenDraft, setAccessTokenDraft] = useState(currentAccessToken());
 
   const { prd, tasks, logs, exports, provider, graph, runHistory = [] } = workspace;
 
@@ -262,6 +277,20 @@ function App() {
     setWorkspaceDraft(nextKey);
     setWorkspace(emptyWorkspace());
     setSelectedTaskId(null);
+    setExportPackage(null);
+    setSetupVerification(null);
+    setIntegrationVerification(null);
+    await refreshWorkspace();
+    await refreshIntegrationVerification();
+  }
+
+  async function saveAccessToken() {
+    const token = accessTokenDraft.trim();
+    if (token) {
+      localStorage.setItem(accessTokenStorageKey, token);
+    } else {
+      localStorage.removeItem(accessTokenStorageKey);
+    }
     setExportPackage(null);
     setSetupVerification(null);
     setIntegrationVerification(null);
@@ -597,6 +626,19 @@ function App() {
                   aria-label="Workspace key"
                 />
               </label>
+              <label>
+                <span>Access token</span>
+                <Input
+                  type="password"
+                  value={accessTokenDraft}
+                  onChange={(event) => setAccessTokenDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') saveAccessToken();
+                  }}
+                  placeholder="demo-open"
+                  aria-label="Workspace access token"
+                />
+              </label>
               <Button
                 variant={workspaceKey === normalizeClientWorkspaceKey(workspaceDraft) ? 'outline' : 'secondary'}
                 onClick={switchWorkspace}
@@ -604,6 +646,10 @@ function App() {
               >
                 <RefreshCw data-icon="inline-start" />
                 Switch
+              </Button>
+              <Button variant="outline" onClick={saveAccessToken} disabled={busyAction === 'loading'}>
+                <Check data-icon="inline-start" />
+                Token
               </Button>
             </div>
             <div className="nova-actions">
@@ -639,6 +685,7 @@ function App() {
             <MetricCard label="Pending" value={counts.pending} />
             <MetricCard label="Runs" value={runHistory.length} />
             <MetricCard label="Workspace" value={workspace.workspace?.label || workspaceKey} text />
+            <MetricCard label="Access" value={provider.access || 'demo-open'} text />
             <MetricCard label="AI mode" value={provider.ai} text />
             <MetricCard label="Storage" value={provider.storage} text />
           </section>

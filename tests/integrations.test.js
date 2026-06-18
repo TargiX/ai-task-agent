@@ -325,7 +325,7 @@ test('preflight distinguishes fallback, missing, ready, and misconfigured env st
   await withRelevantEnv({}, async () => {
     const preflight = preflightStatus();
     assert.equal(preflight.summary.ready, 1);
-    assert.equal(preflight.summary.fallback, 2);
+    assert.equal(preflight.summary.fallback, 3);
     assert.equal(preflight.summary.missing, 2);
     assert.equal(preflight.summary.misconfigured, 0);
   });
