@@ -1,4 +1,6 @@
 const baseUrl = (process.env.BASE_URL || 'http://127.0.0.1:5173').replace(/\/$/, '');
+const workspaceKey =
+  process.env.SMOKE_WORKSPACE || `smoke-${new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14)}-${process.pid}`;
 const idea =
   'A lightweight customer feedback portal for B2B SaaS teams. Users submit feature requests, product managers cluster similar ideas, and approved requests sync into engineering planning.';
 
@@ -33,7 +35,7 @@ assert(memory.documents?.length >= 6, 'memory corpus must include knowledge docs
 
 const streamResponse = await fetch(`${baseUrl}/api/agent/stream`, {
   method: 'POST',
-  headers: { 'content-type': 'application/json' },
+  headers: requestHeaders(),
   body: JSON.stringify({ idea }),
 });
 assert(streamResponse.ok, `agent stream returned ${streamResponse.status}`);
@@ -73,6 +75,7 @@ console.log(
     {
       ok: true,
       baseUrl,
+      workspace: workspaceKey,
       health: { runtime: health.runtime, environment: health.environment },
       preflight: preflight.summary,
       setupVerification: setupVerify.summary,
@@ -96,7 +99,7 @@ console.log(
 );
 
 async function getJson(path) {
-  const response = await fetch(`${baseUrl}${path}`);
+  const response = await fetch(`${baseUrl}${path}`, { headers: requestHeaders(false) });
   assert(response.ok, `${path} returned ${response.status}`);
   return response.json();
 }
@@ -104,11 +107,25 @@ async function getJson(path) {
 async function patchJson(path, body) {
   const response = await fetch(`${baseUrl}${path}`, {
     method: 'PATCH',
-    headers: { 'content-type': 'application/json' },
+    headers: requestHeaders(),
     body: JSON.stringify(body),
   });
   assert(response.ok, `${path} returned ${response.status}`);
   return response.json();
+}
+
+function requestHeaders(withContentType = true) {
+  return {
+    ...(withContentType ? { 'content-type': 'application/json' } : {}),
+    'x-ai-task-agent-workspace': workspaceKey,
+    ...(process.env.AUTHORIZATION ? { authorization: process.env.AUTHORIZATION } : {}),
+    ...(process.env.WORKSPACE_ACCESS_TOKEN
+      ? { 'x-ai-task-agent-access-token': process.env.WORKSPACE_ACCESS_TOKEN }
+      : {}),
+    ...(process.env.VERCEL_AUTOMATION_BYPASS_SECRET
+      ? { 'x-vercel-protection-bypass': process.env.VERCEL_AUTOMATION_BYPASS_SECRET }
+      : {}),
+  };
 }
 
 function parseSse(body) {

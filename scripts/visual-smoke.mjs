@@ -3,12 +3,16 @@ import path from 'node:path';
 import { chromium } from 'playwright';
 
 const baseUrl = process.env.BASE_URL || 'http://127.0.0.1:5173';
+const workspaceKey =
+  process.env.SMOKE_WORKSPACE ||
+  `visual-smoke-${new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14)}-${process.pid}`;
 const qaDir = path.join(process.cwd(), 'qa');
 await fs.mkdir(qaDir, { recursive: true });
 
 const browser = await chromium.launch({ headless: true });
 try {
   const desktop = await browser.newPage({ viewport: { width: 1440, height: 940 } });
+  await seedBrowserWorkspace(desktop);
   await desktop.goto(baseUrl, { waitUntil: 'networkidle' });
   await desktop.getByRole('heading', { name: /Product idea workspace|MVP/i }).first().waitFor();
   await desktop.getByRole('button', { name: /^Reset$/ }).click();
@@ -44,6 +48,7 @@ try {
   await desktop.close();
 
   const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true });
+  await seedBrowserWorkspace(mobile);
   await mobile.goto(baseUrl, { waitUntil: 'networkidle' });
   await mobile.getByText('Scope coverage').scrollIntoViewIfNeeded();
   await mobile.getByText('Scope coverage').waitFor();
@@ -56,6 +61,7 @@ try {
       {
         ok: true,
         baseUrl,
+        workspace: workspaceKey,
         screenshots: ['qa/visual-desktop.png', 'qa/visual-mobile.png'],
       },
       null,
@@ -64,6 +70,16 @@ try {
   );
 } finally {
   await browser.close();
+}
+
+async function seedBrowserWorkspace(page) {
+  await page.addInitScript(
+    ({ workspace, accessToken }) => {
+      localStorage.setItem('ai-task-agent.workspaceId', workspace);
+      if (accessToken) localStorage.setItem('ai-task-agent.accessToken', accessToken);
+    },
+    { workspace: workspaceKey, accessToken: process.env.WORKSPACE_ACCESS_TOKEN || '' },
+  );
 }
 
 async function assertNoHorizontalOverflow(page, label) {

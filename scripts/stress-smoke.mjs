@@ -1,4 +1,7 @@
 const baseUrl = (process.env.BASE_URL || 'http://127.0.0.1:5173').replace(/\/$/, '');
+const workspaceKey =
+  process.env.SMOKE_WORKSPACE ||
+  `stress-smoke-${new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14)}-${process.pid}`;
 const idea =
   'A stress-tested AI task agent for SaaS teams that turns product ideas into PRDs, approvals, and issue exports.';
 
@@ -48,6 +51,7 @@ console.log(
     {
       ok: true,
       baseUrl,
+      workspace: workspaceKey,
       jsonRuns: runs.length,
       streamRuns: streams.length,
       runHistory: history.runs.length,
@@ -84,6 +88,14 @@ async function request(path, options = {}) {
     ...options,
     headers: {
       'content-type': 'application/json',
+      'x-ai-task-agent-workspace': workspaceKey,
+      ...(process.env.AUTHORIZATION ? { authorization: process.env.AUTHORIZATION } : {}),
+      ...(process.env.WORKSPACE_ACCESS_TOKEN
+        ? { 'x-ai-task-agent-access-token': process.env.WORKSPACE_ACCESS_TOKEN }
+        : {}),
+      ...(process.env.VERCEL_AUTOMATION_BYPASS_SECRET
+        ? { 'x-vercel-protection-bypass': process.env.VERCEL_AUTOMATION_BYPASS_SECRET }
+        : {}),
       ...(options.headers || {}),
     },
   });

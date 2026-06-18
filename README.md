@@ -46,6 +46,7 @@ npm run supabase:smoke
 Open `http://127.0.0.1:5173/`.
 
 For deployed previews, run `BASE_URL=https://your-preview.vercel.app npm run smoke`.
+Smoke scripts use an isolated workspace key by default. Set `SMOKE_WORKSPACE=your-key` when you want repeatable runs against the same test workspace.
 
 For a production-readiness smoke after durable env vars are set, run:
 

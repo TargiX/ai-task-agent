@@ -1,4 +1,7 @@
 const baseUrl = requiredEnv('BASE_URL').replace(/\/$/, '');
+const workspaceKey =
+  process.env.SMOKE_WORKSPACE ||
+  `production-smoke-${new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14)}-${process.pid}`;
 const exportTarget = process.env.EXPORT_TARGET || 'Linear';
 const requireDurable = process.env.REQUIRE_DURABLE !== '0';
 const requireLiveLlm = process.env.REQUIRE_LIVE_LLM === '1';
@@ -84,6 +87,7 @@ console.log(
     {
       ok: true,
       baseUrl,
+      workspace: workspaceKey,
       runtime: health.runtime,
       environment: health.environment,
       provider: preflight.provider,
@@ -133,7 +137,11 @@ async function request(path, options = {}) {
     ...options,
     headers: {
       'content-type': 'application/json',
+      'x-ai-task-agent-workspace': workspaceKey,
       ...(process.env.AUTHORIZATION ? { authorization: process.env.AUTHORIZATION } : {}),
+      ...(process.env.WORKSPACE_ACCESS_TOKEN
+        ? { 'x-ai-task-agent-access-token': process.env.WORKSPACE_ACCESS_TOKEN }
+        : {}),
       ...(process.env.VERCEL_AUTOMATION_BYPASS_SECRET
         ? { 'x-vercel-protection-bypass': process.env.VERCEL_AUTOMATION_BYPASS_SECRET }
         : {}),
