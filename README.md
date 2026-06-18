@@ -99,7 +99,7 @@ Team workspace isolation:
 ## Agent architecture
 
 - `lib/agent-runtime.js` owns graph state, node execution, validation, and interrupt logs.
-- `lib/llm.js` owns provider routing across OpenRouter, FreeLLMAPI, OpenAI, and local fallback.
+- `lib/llm.js` owns provider routing and tool-call planning across OpenRouter, FreeLLMAPI, OpenAI, and local fallback.
 - `lib/storage.js` owns JSON, Supabase, and Cloudflare D1 persistence.
 - `lib/integrations.js` owns Linear and GitHub issue creation.
 - `lib/domain.js` owns graph trace shape, provider status, fallback planning, and export payload shape.
@@ -156,10 +156,10 @@ LLM priority:
 1. Python FastAPI + LangGraph backend (`LANGGRAPH_BACKEND_URL`)
 2. OpenRouter (`OPENROUTER_API_KEY`)
 3. FreeLLMAPI-compatible proxy (`FREELLMAPI_BASE_URL`, `FREELLMAPI_API_KEY`)
-4. OpenAI Responses API (`OPENAI_API_KEY`)
+4. OpenAI-compatible chat tool calling (`OPENAI_API_KEY`)
 5. Local planner fallback
 
-LLM model discovery is available at `GET /api/llm/free-models`. With OpenRouter it returns the best free text models first; with FreeLLMAPI it calls the proxy's OpenAI-compatible `/v1/models` catalog. `FREELLMAPI_BASE_URL` can be either `http://host:3001` or `http://host:3001/v1`.
+LLM model discovery is available at `GET /api/llm/free-models`. With OpenRouter it returns the best free text models first; with FreeLLMAPI it calls the proxy's OpenAI-compatible `/v1/models` catalog. Live chat providers use a `create_prd_and_tasks` function tool so the model returns structured PRD/task arguments instead of free-form prose. `FREELLMAPI_BASE_URL` can be either `http://host:3001` or `http://host:3001/v1`.
 
 ## Supabase
 
@@ -242,7 +242,7 @@ Set environment variables from `.env.example` to enable:
 - Workspace access guard with `WORKSPACE_ACCESS_TOKEN`
 - OpenRouter generation with `OPENROUTER_API_KEY`
 - FreeLLMAPI-compatible proxy with `FREELLMAPI_BASE_URL` and `FREELLMAPI_API_KEY`
-- OpenAI Responses API generation with `OPENAI_API_KEY`
+- OpenAI chat tool-call generation with `OPENAI_API_KEY`
 - Cloudflare D1 storage with `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_D1_DATABASE_ID`, and `CLOUDFLARE_API_TOKEN`
 - GitHub issue creation with `GITHUB_TOKEN` and `GITHUB_REPOSITORY`
 - Linear issue creation with `LINEAR_API_KEY` and `LINEAR_TEAM_ID`

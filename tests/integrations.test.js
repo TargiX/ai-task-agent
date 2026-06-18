@@ -312,10 +312,137 @@ test('FreeLLMAPI discovery and planner use OpenAI-compatible /v1 endpoints', asy
         assert.equal(plan.prd.generatedBy, 'freellmapi');
         assert.equal(plan.prd.model, 'auto');
         assert.equal(plan.tasks[0].source, 'freellmapi');
-        assert.equal(calls.find((call) => call.url.endsWith('/chat/completions')).body.model, 'auto');
+        const completion = calls.find((call) => call.url.endsWith('/chat/completions'));
+        assert.equal(completion.body.model, 'auto');
+        assert.equal(completion.body.tools[0].function.name, 'create_prd_and_tasks');
+        assert.equal(completion.body.tool_choice.function.name, 'create_prd_and_tasks');
         assert.equal(calls.every((call) => call.options.headers.authorization === 'Bearer freellmapi-key'), true);
       },
     );
+  } finally {
+    global.fetch = previousFetch;
+  }
+});
+
+test('OpenRouter planner selects a free tool-capable model and reads tool call arguments', async () => {
+  const previousFetch = global.fetch;
+  const calls = [];
+
+  try {
+    await withRelevantEnv({ OPENROUTER_API_KEY: 'openrouter-key' }, async () => {
+      global.fetch = async (url, options = {}) => {
+        calls.push({ url, options, body: options.body ? JSON.parse(options.body) : null });
+        if (url === 'https://openrouter.ai/api/v1/models?output_modalities=text') {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({
+              data: [
+                {
+                  id: 'free/no-tools',
+                  name: 'Free No Tools',
+                  pricing: { prompt: '0', completion: '0' },
+                  context_length: 200000,
+                  supported_parameters: [],
+                  created: 2,
+                },
+                {
+                  id: 'free/tools',
+                  name: 'Free Tools',
+                  pricing: { prompt: '0', completion: '0' },
+                  context_length: 32000,
+                  supported_parameters: ['tools'],
+                  created: 1,
+                },
+              ],
+            }),
+          };
+        }
+        if (url === 'https://openrouter.ai/api/v1/chat/completions') {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({
+              choices: [
+                {
+                  message: {
+                    tool_calls: [
+                      {
+                        id: 'call-plan',
+                        type: 'function',
+                        function: {
+                          name: 'create_prd_and_tasks',
+                          arguments: JSON.stringify(plannerToolArguments('OpenRouter PRD')),
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            }),
+          };
+        }
+        throw new Error(`Unexpected fetch ${url}`);
+      };
+
+      const plan = await planWithGateway('A product idea long enough for the OpenRouter planner.');
+      const completion = calls.find((call) => call.url.endsWith('/chat/completions'));
+      assert.equal(completion.body.model, 'free/tools');
+      assert.equal(completion.body.tools[0].function.name, 'create_prd_and_tasks');
+      assert.equal(completion.body.tool_choice.function.name, 'create_prd_and_tasks');
+      assert.equal(completion.options.headers.authorization, 'Bearer openrouter-key');
+      assert.equal(plan.prd.generatedBy, 'openrouter');
+      assert.equal(plan.prd.title, 'OpenRouter PRD');
+      assert.equal(plan.toolCall.name, 'create_prd_and_tasks');
+    });
+  } finally {
+    global.fetch = previousFetch;
+  }
+});
+
+test('OpenAI planner uses chat tool calling for PRD and task planning', async () => {
+  const previousFetch = global.fetch;
+  const calls = [];
+
+  try {
+    await withRelevantEnv({ OPENAI_API_KEY: 'openai-key', OPENAI_MODEL: 'gpt-4.1' }, async () => {
+      global.fetch = async (url, options = {}) => {
+        calls.push({ url, options, body: options.body ? JSON.parse(options.body) : null });
+        if (url === 'https://api.openai.com/v1/chat/completions') {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({
+              choices: [
+                {
+                  message: {
+                    tool_calls: [
+                      {
+                        id: 'call-openai-plan',
+                        type: 'function',
+                        function: {
+                          name: 'create_prd_and_tasks',
+                          arguments: JSON.stringify(plannerToolArguments('OpenAI PRD')),
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            }),
+          };
+        }
+        throw new Error(`Unexpected fetch ${url}`);
+      };
+
+      const plan = await planWithGateway('A product idea long enough for the OpenAI planner.');
+      assert.equal(calls[0].body.model, 'gpt-4.1');
+      assert.equal(calls[0].body.tools[0].function.name, 'create_prd_and_tasks');
+      assert.equal(calls[0].options.headers.authorization, 'Bearer openai-key');
+      assert.equal(plan.prd.generatedBy, 'openai');
+      assert.equal(plan.prd.title, 'OpenAI PRD');
+      assert.equal(plan.toolCall.name, 'create_prd_and_tasks');
+    });
   } finally {
     global.fetch = previousFetch;
   }
@@ -391,11 +518,13 @@ test('preflight distinguishes fallback, missing, ready, and misconfigured env st
 async function withRelevantEnv(values, callback) {
   const names = [
     'OPENROUTER_API_KEY',
+    'OPENROUTER_MODEL',
     'LANGGRAPH_BACKEND_URL',
     'FREELLMAPI_BASE_URL',
     'FREELLMAPI_API_KEY',
     'FREELLMAPI_MODEL',
     'OPENAI_API_KEY',
+    'OPENAI_MODEL',
     'SUPABASE_URL',
     'SUPABASE_SERVICE_ROLE_KEY',
     'SUPABASE_PUBLISHABLE_KEY',
@@ -420,4 +549,26 @@ async function withRelevantEnv(values, callback) {
       else process.env[name] = previous[name];
     }
   }
+}
+
+function plannerToolArguments(title) {
+  return {
+    prd: {
+      title,
+      problem: 'Teams need planning support.',
+      audience: 'SaaS teams',
+      goals: ['Create a structured plan'],
+      scope: ['PRD', 'Tasks'],
+      sourceIdea: 'Idea',
+    },
+    tasks: [
+      {
+        title: 'Create planning task',
+        owner: 'AI',
+        priority: 'High',
+        effort: '3 pts',
+        acceptance: 'The planning task has clear acceptance criteria.',
+      },
+    ],
+  };
 }

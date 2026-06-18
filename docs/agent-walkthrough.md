@@ -47,6 +47,7 @@ The UI and API also accept a workspace key so separate teams can keep isolated r
 - Planner/model routing: `lib/llm.js`
   - Tries FastAPI + LangGraph first when `LANGGRAPH_BACKEND_URL` is configured.
   - Falls back through OpenRouter, FreeLLMAPI-compatible proxies, OpenAI, then deterministic local planning.
+  - Uses the `create_prd_and_tasks` function tool for live chat providers, then validates and persists the returned arguments.
   - Fetches and ranks free OpenRouter models by tool support, context length, and recency.
 
 - Storage tools: `lib/storage.js`
