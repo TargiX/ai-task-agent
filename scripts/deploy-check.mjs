@@ -169,7 +169,8 @@ function nextSteps(blockers) {
     steps.push('Link or create the Vercel project.');
   }
   if (blockers.some((blocker) => blocker.id === 'durable-production-state')) {
-    steps.push('To enable only the workspace guard first, run npm run vercel:env:sync -- --allow-partial --only=WORKSPACE_ACCESS_TOKEN --apply --scope=targixs-projects, then redeploy.');
+    steps.push('To enable only the workspace guard first on production, run npm run vercel:env:sync -- --allow-partial --only=WORKSPACE_ACCESS_TOKEN --env=production --apply --scope=targixs-projects, then redeploy production.');
+    steps.push('For guarded preview env vars, connect the Vercel project to Git or pass --git-branch on a Git-connected project.');
     steps.push('For Cloudflare D1, run npm run d1:setup -- --name=ai-task-agent --location=apac --write-env.');
     steps.push('For Supabase, apply supabase/migrations/0001_ai_task_agent.sql, set SUPABASE_URL plus SUPABASE_SERVICE_ROLE_KEY, then run npm run supabase:smoke.');
     steps.push('Then run npm run vercel:env:sync -- --apply --scope=targixs-projects and redeploy.');

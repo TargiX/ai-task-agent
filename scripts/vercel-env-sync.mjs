@@ -32,6 +32,7 @@ const environments = String(args.env || 'preview,production')
 const apply = Boolean(args.apply);
 const allowPartial = Boolean(args['allow-partial']);
 const scope = args.scope || process.env.VERCEL_SCOPE || '';
+const gitBranch = args['git-branch'] || process.env.VERCEL_GIT_BRANCH || '';
 const vercelCli = args.vercel || findVercelCli();
 const requestedOnly = parseCsv(args.only);
 const selectedEnvVars = requestedOnly.length
@@ -55,7 +56,7 @@ const commands = [];
 
 for (const environment of environments) {
   for (const name of present) {
-    commands.push({ name, environment, args: vercelEnvArgs(name, environment, scope) });
+    commands.push({ name, environment, value: values[name], args: vercelEnvArgs(name, environment, { scope, gitBranch }) });
   }
 }
 
@@ -71,6 +72,7 @@ if (!apply) {
         dryRun: true,
         envFile,
         environments,
+        gitBranch: gitBranch || null,
         allowPartial,
         only: requestedOnly,
         unknownOnly,
@@ -124,14 +126,13 @@ if (!commands.length) {
 
 const applied = [];
 for (const command of commands) {
-  const result = spawnSync(vercelCli, command.args, {
-    input: values[command.name],
+  const result = spawnSync(vercelCli, vercelEnvArgs(command.name, command.environment, { scope, gitBranch, value: command.value }), {
     encoding: 'utf8',
     cwd: process.cwd(),
   });
   if (result.status !== 0) {
     throw new Error(
-      `Failed to sync ${command.name} to ${command.environment}: ${(result.stderr || result.stdout).trim()}`,
+      `Failed to sync ${command.name} to ${command.environment}: ${formatVercelEnvError(result, command)}`,
     );
   }
   applied.push({ name: command.name, environment: command.environment });
@@ -151,10 +152,31 @@ console.log(
   ),
 );
 
-function vercelEnvArgs(name, environment, scopeValue) {
+function vercelEnvArgs(name, environment, { scope: scopeValue, gitBranch: branchValue = '', value } = {}) {
   const command = ['env', 'add', name, environment, '--force', '--yes'];
+  if (environment === 'preview' && branchValue) command.splice(4, 0, branchValue);
+  if (value !== undefined) command.push('--value', value);
   if (scopeValue) command.push('--scope', scopeValue);
   return command;
+}
+
+function formatVercelEnvError(result, command) {
+  const output = (result.stderr || result.stdout || result.error?.message || '').trim();
+  const payload = parseJsonObject(output);
+  if (payload?.reason === 'git_branch_required') {
+    return [
+      payload.message,
+      'Preview env sync needs a Git-connected Vercel project or an explicit --git-branch on projects connected to Git.',
+      'For this Gitless local-deploy project, use --env=production for production env vars, or connect a Git repository before syncing Preview env vars.',
+    ].join(' ');
+  }
+  if (/does not have a connected Git repository/i.test(payload?.message || output) && command.environment === 'preview') {
+    return [
+      payload?.message || output,
+      'Preview env vars require a connected Git repository on this Vercel project. Use --env=production or connect Git before syncing Preview env vars.',
+    ].join(' ');
+  }
+  return output || `vercel env add exited with status ${result.status}`;
 }
 
 function readDotEnvIfExists(filePath) {
@@ -212,4 +234,15 @@ function parseCsv(value) {
     .split(',')
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function parseJsonObject(output) {
+  const start = output.indexOf('{');
+  const end = output.lastIndexOf('}');
+  if (start < 0 || end <= start) return null;
+  try {
+    return JSON.parse(output.slice(start, end + 1));
+  } catch {
+    return null;
+  }
 }

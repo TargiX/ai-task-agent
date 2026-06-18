@@ -231,6 +231,8 @@ For a scoped preparatory sync, use `--allow-partial --only=<comma-separated env 
 npm run vercel:env:sync -- --allow-partial --only=WORKSPACE_ACCESS_TOKEN --apply --scope=targixs-projects
 ```
 
+Preview environment variables on Git-connected Vercel projects can be scoped with `--git-branch=main`. This local-deploy project is not connected to a Git repository yet, so Vercel only accepts `production` env writes until Git is connected; keep Preview in demo mode or connect Git before syncing Preview-only variables.
+
 Production env init:
 
 ```bash

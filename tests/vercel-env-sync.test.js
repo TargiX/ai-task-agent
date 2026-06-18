@@ -29,6 +29,22 @@ test('vercel env sync supports scoped partial dry-run without durable storage', 
   assert.match(report.commands[0], /env add WORKSPACE_ACCESS_TOKEN preview/);
 });
 
+test('vercel env sync includes git branch for preview env when requested', async () => {
+  const { envFile } = await writeEnvFile('WORKSPACE_ACCESS_TOKEN=secret-token\n');
+  const result = runEnvSync([
+    `--from=${envFile}`,
+    '--allow-partial',
+    '--only=WORKSPACE_ACCESS_TOKEN',
+    '--env=preview',
+    '--git-branch=main',
+  ]);
+
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.gitBranch, 'main');
+  assert.match(report.commands[0], /env add WORKSPACE_ACCESS_TOKEN preview main/);
+});
+
 test('vercel env sync remains strict without allow-partial', async () => {
   const { envFile } = await writeEnvFile('WORKSPACE_ACCESS_TOKEN=secret-token\n');
   const result = runEnvSync([`--from=${envFile}`, '--only=WORKSPACE_ACCESS_TOKEN']);
@@ -61,12 +77,7 @@ test('vercel env sync apply sends only selected variables and does not print val
     fakeVercel,
     `#!/usr/bin/env node
 import fs from 'node:fs';
-let input = '';
-process.stdin.on('data', (chunk) => { input += chunk; });
-process.stdin.on('end', () => {
-  fs.appendFileSync(process.env.FAKE_VERCEL_LOG, JSON.stringify({ argv: process.argv.slice(2), input }) + '\\n');
-  process.exit(0);
-});
+fs.appendFileSync(process.env.FAKE_VERCEL_LOG, JSON.stringify({ argv: process.argv.slice(2) }) + '\\n');
 `,
     'utf8',
   );
@@ -91,7 +102,40 @@ process.stdin.on('end', () => {
   const log = (await readFile(logFile, 'utf8')).trim().split('\n').map((line) => JSON.parse(line));
   assert.equal(log.length, 1);
   assert.deepEqual(log[0].argv.slice(0, 4), ['env', 'add', 'WORKSPACE_ACCESS_TOKEN', 'preview']);
-  assert.equal(log[0].input, 'secret-token');
+  assert.ok(log[0].argv.includes('--value'));
+  assert.equal(log[0].argv[log[0].argv.indexOf('--value') + 1], 'secret-token');
+});
+
+test('vercel env sync explains Gitless preview env failures', async () => {
+  const { tmpDir, envFile } = await writeEnvFile('WORKSPACE_ACCESS_TOKEN=secret-token\n');
+  const fakeVercel = path.join(tmpDir, 'fake-vercel.mjs');
+  await writeFile(
+    fakeVercel,
+    `#!/usr/bin/env node
+console.error(JSON.stringify({
+  status: 'action_required',
+  reason: 'git_branch_required',
+  message: 'Add WORKSPACE_ACCESS_TOKEN to which Git branch for Preview?'
+}));
+process.exit(1);
+`,
+    'utf8',
+  );
+  await chmod(fakeVercel, 0o755);
+
+  const result = runEnvSync([
+    `--from=${envFile}`,
+    '--allow-partial',
+    '--only=WORKSPACE_ACCESS_TOKEN',
+    '--env=preview',
+    '--apply',
+    `--vercel=${fakeVercel}`,
+  ]);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /Git-connected Vercel project/);
+  assert.match(result.stderr, /--env=production/);
+  assert.equal(result.stderr.includes('secret-token'), false);
 });
 
 async function writeEnvFile(contents) {
