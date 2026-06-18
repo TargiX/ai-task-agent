@@ -14,6 +14,7 @@ export default async function handler(req, res) {
     });
     await streamAgentRun({
       body: req.body || {},
+      headers: req.headers,
       writeEvent: async (event) => writeSse(res, event),
     });
     res.end();

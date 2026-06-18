@@ -47,6 +47,8 @@ async function handleLocalApi(req, res) {
       try {
         await streamAgentRun({
           body,
+          headers: req.headers,
+          query: Object.fromEntries(url.searchParams.entries()),
           writeEvent: async (event) => writeSse(res, event),
         });
       } catch (streamError) {
@@ -63,6 +65,7 @@ async function handleLocalApi(req, res) {
       method: req.method,
       pathname: url.pathname,
       query: Object.fromEntries(url.searchParams.entries()),
+      headers: req.headers,
       body: req.method === 'GET' ? {} : await readJson(req),
     });
     sendJson(res, result.status, result.body);

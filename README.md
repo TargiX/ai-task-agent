@@ -71,6 +71,13 @@ durable storage, live LLM provider fallback, and Linear/GitHub export readiness.
 
 ## API
 
+Team workspace isolation:
+
+- Requests may include `x-ai-task-agent-workspace: your-team-key`.
+- Empty, `default`, or no header uses the default workspace.
+- The React UI stores the workspace key locally and sends it with all API and SSE requests.
+- This isolates runs, PRDs, tasks, approvals, exports, and run history per workspace. It is not a replacement for production user authentication.
+
 - `GET /api/workspace` returns PRD, tasks, graph trace, logs, exports, and provider status.
 - `GET /api/runs` returns persisted run summaries for resume/history.
 - `POST /api/runs/select` accepts `{ "runId": "..." }` and resumes that run as the active workspace.
@@ -246,6 +253,7 @@ Implemented:
 - Local RAG-style planning memory with retrieved PRD context.
 - Local JSON storage plus Supabase and Cloudflare D1 storage adapters and schemas.
 - Run history and resume across JSON, Supabase, and Cloudflare D1 storage.
+- Workspace-key isolation for team runs across JSON, Supabase, and Cloudflare D1 storage.
 - Repeatable D1 migration, D1 smoke, Vercel env sync, and production smoke commands.
 - Dry-run/apply production launch orchestration for tests, D1 setup, Vercel env sync, deploy, and final smoke handoff.
 - Human approval gate before export.

@@ -35,6 +35,7 @@ test('agent workflow creates PRD/tasks, enforces approval, then exports issues',
   assert.equal(preflight.body.capabilities.find((item) => item.id === 'rag-memory').status, 'ready');
   assert.equal(preflight.body.capabilities.find((item) => item.id === 'evals-tracing').status, 'ready');
   assert.equal(preflight.body.capabilities.find((item) => item.id === 'external-tracing').status, 'ready');
+  assert.equal(preflight.body.capabilities.find((item) => item.id === 'workspace-isolation').status, 'ready');
   assert.equal(preflight.body.setup.productionReady, false);
   assert.equal(preflight.body.setup.groups.find((group) => group.id === 'durable-storage').active, 'json');
   assert.ok(
@@ -268,6 +269,49 @@ test('run history keeps previous agent runs and can resume one as current', asyn
   assert.equal(selected.body.runId, first.body.runId);
   assert.equal(selected.body.prd.title, first.body.prd.title);
   assert.equal(selected.body.runHistory.length, 2);
+});
+
+test('workspace header isolates active runs and run history', async () => {
+  await isolateJsonStorage();
+  const teamA = { 'x-ai-task-agent-workspace': 'alpha-team' };
+  const teamB = { 'x-ai-task-agent-workspace': 'beta-team' };
+
+  const first = await handleApiRequest({
+    method: 'POST',
+    pathname: '/api/agent/run',
+    headers: teamA,
+    body: { idea },
+  });
+  const second = await handleApiRequest({
+    method: 'POST',
+    pathname: '/api/agent/run',
+    headers: teamB,
+    body: {
+      idea: 'A billing operations assistant for SaaS finance teams that audits failed payments and creates approved engineering follow-up tasks.',
+    },
+  });
+
+  assert.equal(first.status, 200);
+  assert.equal(second.status, 200);
+  assert.equal(first.body.workspace.label, 'alpha-team');
+  assert.equal(second.body.workspace.label, 'beta-team');
+  assert.notEqual(first.body.runId, second.body.runId);
+
+  const alphaRuns = await handleApiRequest({ method: 'GET', pathname: '/api/runs', headers: teamA });
+  const betaRuns = await handleApiRequest({ method: 'GET', pathname: '/api/runs', headers: teamB });
+  const defaultRuns = await handleApiRequest({ method: 'GET', pathname: '/api/runs' });
+
+  assert.deepEqual(alphaRuns.body.runs.map((run) => run.runId), [first.body.runId]);
+  assert.deepEqual(betaRuns.body.runs.map((run) => run.runId), [second.body.runId]);
+  assert.equal(defaultRuns.body.runs.length, 0);
+
+  const crossWorkspaceSelect = await handleApiRequest({
+    method: 'POST',
+    pathname: '/api/runs/select',
+    headers: teamB,
+    body: { runId: first.body.runId },
+  });
+  assert.equal(crossWorkspaceSelect.status, 404);
 });
 
 test('expected API state errors return structured 4xx responses', async () => {

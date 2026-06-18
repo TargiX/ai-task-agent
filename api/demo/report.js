@@ -8,6 +8,7 @@ export default async function handler(req, res) {
       method: req.method,
       pathname: '/api/demo/report',
       query: Object.fromEntries(url.searchParams.entries()),
+      headers: req.headers,
       body: req.method === 'GET' ? {} : req.body || {},
     });
     res.status(result.status).json(result.body);

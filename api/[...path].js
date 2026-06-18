@@ -14,6 +14,8 @@ export default async function handler(req, res) {
       });
       await streamAgentRun({
         body: req.body || {},
+        headers: req.headers,
+        query: Object.fromEntries(url.searchParams.entries()),
         writeEvent: async (event) => writeSse(res, event),
       });
       res.end();
@@ -24,6 +26,7 @@ export default async function handler(req, res) {
       method: req.method,
       pathname,
       query: Object.fromEntries(url.searchParams.entries()),
+      headers: req.headers,
       body: req.method === 'GET' ? {} : req.body || {},
     });
     res.status(result.status).json(result.body);

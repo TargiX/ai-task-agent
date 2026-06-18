@@ -5,6 +5,7 @@ export default async function handler(req, res) {
     const result = await handleApiRequest({
       method: req.method,
       pathname: '/api/agent/run',
+      headers: req.headers,
       body: req.method === 'GET' ? {} : req.body || {},
     });
     res.status(result.status).json(result.body);

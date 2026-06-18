@@ -84,6 +84,7 @@ const skillStack = [
   'Supabase-ready state',
   'Linear/GitHub export',
 ];
+const workspaceStorageKey = 'ai-task-agent.workspaceId';
 
 function emptyWorkspace() {
   return {
@@ -94,6 +95,10 @@ function emptyWorkspace() {
     exports: [],
     graph: [],
     runHistory: [],
+    workspace: {
+      id: 'default',
+      label: 'default',
+    },
     provider: {
       ai: 'local-planner',
       storage: 'json',
@@ -108,12 +113,32 @@ async function api(path, options = {}) {
     ...options,
     headers: {
       'content-type': 'application/json',
+      ...workspaceHeader(),
       ...(options.headers || {}),
     },
   });
   const body = await response.json();
   if (!response.ok) throw new Error(body.error || 'Request failed');
   return body;
+}
+
+function workspaceHeader() {
+  return { 'x-ai-task-agent-workspace': currentWorkspaceKey() };
+}
+
+function currentWorkspaceKey() {
+  if (typeof localStorage === 'undefined') return 'default';
+  return normalizeClientWorkspaceKey(localStorage.getItem(workspaceStorageKey) || 'default');
+}
+
+function normalizeClientWorkspaceKey(value) {
+  const normalized = String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+  return normalized || 'default';
 }
 
 async function readSse(response, onEvent) {
@@ -163,6 +188,8 @@ function App() {
   const [streamStatus, setStreamStatus] = useState('');
   const [busyAction, setBusyAction] = useState('loading');
   const [error, setError] = useState('');
+  const [workspaceKey, setWorkspaceKey] = useState(currentWorkspaceKey());
+  const [workspaceDraft, setWorkspaceDraft] = useState(currentWorkspaceKey());
 
   const { prd, tasks, logs, exports, provider, graph, runHistory = [] } = workspace;
 
@@ -226,6 +253,20 @@ function App() {
     } finally {
       setBusyAction('');
     }
+  }
+
+  async function switchWorkspace() {
+    const nextKey = normalizeClientWorkspaceKey(workspaceDraft);
+    localStorage.setItem(workspaceStorageKey, nextKey);
+    setWorkspaceKey(nextKey);
+    setWorkspaceDraft(nextKey);
+    setWorkspace(emptyWorkspace());
+    setSelectedTaskId(null);
+    setExportPackage(null);
+    setSetupVerification(null);
+    setIntegrationVerification(null);
+    await refreshWorkspace();
+    await refreshIntegrationVerification();
   }
 
   async function refreshFreeModels() {
@@ -333,7 +374,7 @@ function App() {
   async function runAgentStream() {
     const response = await fetch('/api/agent/stream', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', ...workspaceHeader() },
       body: JSON.stringify({ idea }),
     });
     if (!response.ok || !response.body) return false;
@@ -544,6 +585,27 @@ function App() {
               </div>
               <h1>{prd ? prd.title : 'Product idea workspace'}</h1>
             </div>
+            <div className="nova-workspace-switcher">
+              <label>
+                <span>Workspace key</span>
+                <Input
+                  value={workspaceDraft}
+                  onChange={(event) => setWorkspaceDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') switchWorkspace();
+                  }}
+                  aria-label="Workspace key"
+                />
+              </label>
+              <Button
+                variant={workspaceKey === normalizeClientWorkspaceKey(workspaceDraft) ? 'outline' : 'secondary'}
+                onClick={switchWorkspace}
+                disabled={busyAction === 'loading'}
+              >
+                <RefreshCw data-icon="inline-start" />
+                Switch
+              </Button>
+            </div>
             <div className="nova-actions">
               <Button variant="outline" onClick={resetWorkspace} disabled={busyAction === 'reset'}>
                 {busyAction === 'reset' ? (
@@ -576,6 +638,7 @@ function App() {
             <MetricCard label="Approved" value={counts.approved} />
             <MetricCard label="Pending" value={counts.pending} />
             <MetricCard label="Runs" value={runHistory.length} />
+            <MetricCard label="Workspace" value={workspace.workspace?.label || workspaceKey} text />
             <MetricCard label="AI mode" value={provider.ai} text />
             <MetricCard label="Storage" value={provider.storage} text />
           </section>
