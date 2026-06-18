@@ -542,6 +542,8 @@ async function withRelevantEnv(values, callback) {
     'GITHUB_REPOSITORY',
     'LINEAR_API_KEY',
     'LINEAR_TEAM_ID',
+    'WORKSPACE_ACCESS_TOKEN',
+    'VERCEL_AUTOMATION_BYPASS_SECRET',
     'VERCEL',
   ];
   const previous = Object.fromEntries(names.map((name) => [name, process.env[name]]));

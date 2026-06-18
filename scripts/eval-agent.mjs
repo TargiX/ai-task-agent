@@ -13,8 +13,9 @@ try {
   for (const testCase of cases) {
     const tmpDir = await mkdtemp(path.join(os.tmpdir(), `ai-task-agent-eval-${testCase.id}-`));
     process.env.TASK_AGENT_DB_FILE = path.join(tmpDir, 'task-agent-db.json');
+    const headers = authHeaders();
 
-    const memory = await handleApiRequest({ method: 'GET', pathname: '/api/memory' });
+    const memory = await handleApiRequest({ method: 'GET', pathname: '/api/memory', headers });
     assert.equal(memory.status, 200);
     assert.ok(
       memory.body.documents.some((doc) => doc.id === testCase.mustRetrieve),
@@ -24,6 +25,7 @@ try {
     const run = await handleApiRequest({
       method: 'POST',
       pathname: '/api/agent/run',
+      headers,
       body: { idea: testCase.idea },
     });
     assert.equal(run.status, 200, `${testCase.id} run should succeed`);
@@ -46,6 +48,7 @@ try {
     const blockedExport = await handleApiRequest({
       method: 'POST',
       pathname: '/api/export',
+      headers,
       body: { target: 'Linear' },
     });
     assert.equal(blockedExport.status, 400, `${testCase.id} export should be blocked before approval`);
@@ -86,6 +89,12 @@ function snapshotEnv() {
 
 function clearProviderEnv() {
   for (const name of Object.keys(previousEnv)) delete process.env[name];
+}
+
+function authHeaders() {
+  return process.env.WORKSPACE_ACCESS_TOKEN
+    ? { 'x-ai-task-agent-access-token': process.env.WORKSPACE_ACCESS_TOKEN }
+    : {};
 }
 
 function restoreEnv(snapshot) {

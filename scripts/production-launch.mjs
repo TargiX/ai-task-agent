@@ -27,6 +27,10 @@ const values = {
     'VERCEL_AUTOMATION_BYPASS_SECRET',
   ]),
 };
+const productionEnv = {
+  ...process.env,
+  ...values,
+};
 const hasCloudflareRuntime =
   values.CLOUDFLARE_ACCOUNT_ID && values.CLOUDFLARE_D1_DATABASE_ID && values.CLOUDFLARE_API_TOKEN;
 const hasCloudflareCreate = values.CLOUDFLARE_ACCOUNT_ID && values.CLOUDFLARE_API_TOKEN;
@@ -89,10 +93,10 @@ const storagePlan =
 const plan = [
   ...basePlan,
   ...storagePlan,
-  ['npm', ['run', 'vercel:env:sync', '--', '--apply', `--scope=${scope}`]],
-  [findVercelCli(), ['deploy', '--yes', '--scope', scope]],
+  ['npm', ['run', 'vercel:env:sync', '--', '--apply', '--env=production', `--scope=${scope}`]],
+  [findVercelCli(), ['deploy', '--prod', '--yes', '--scope', scope]],
 ];
-const hostedSmokePreviewCommand =
+const hostedSmokeCommand =
   'BASE_URL=<deployment-url> REQUIRE_DURABLE=1 REQUIRE_LIVE_LLM=1 REQUIRE_ISSUE_EXPORT=1 REQUIRE_ACCESS_GUARD=1 npm run hosted:smoke';
 
 if (!apply) {
@@ -106,7 +110,7 @@ if (!apply) {
         storageMode,
         blockers,
         acceptedSecretSets,
-        commands: [...plan.map(([command, commandArgs]) => `${command} ${commandArgs.join(' ')}`), hostedSmokePreviewCommand],
+        commands: [...plan.map(([command, commandArgs]) => `${command} ${commandArgs.join(' ')}`), hostedSmokeCommand],
         next: blockers.length ? formatMissingNext(blockers) : 'Run npm run production:launch -- --apply to execute this release path.',
       },
       null,
@@ -124,7 +128,7 @@ const completed = [];
 let deploymentUrl = '';
 for (const [command, commandArgs] of plan) {
   if (!command) throw new Error('Vercel CLI was not found.');
-  const result = run(command, commandArgs);
+  const result = run(command, commandArgs, { env: productionEnv });
   completed.push({ command: `${command} ${commandArgs.join(' ')}`, status: result.status });
   if (result.status !== 0) {
     throw new Error(`${command} ${commandArgs.join(' ')} failed:\n${result.stderr || result.stdout}`);

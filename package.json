@@ -18,7 +18,7 @@
     "hosted:smoke": "node scripts/hosted-smoke.mjs",
     "d1:setup": "node scripts/d1-setup.mjs",
     "d1:migrate": "node scripts/d1-migrate.mjs",
-    "d1:smoke": "node scripts/d1-smoke.mjs",
+    "d1:smoke": "AI_TASKER_ENV_FILE=.env.production.local node scripts/d1-smoke.mjs",
     "supabase:smoke": "node scripts/supabase-smoke.mjs",
     "vercel:env:sync": "node scripts/vercel-env-sync.mjs",
     "production:env:init": "node scripts/production-env-init.mjs",
