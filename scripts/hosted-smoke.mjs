@@ -104,6 +104,9 @@ async function fetchJson(resourcePath) {
       ...(process.env.VERCEL_AUTOMATION_BYPASS_SECRET
         ? { 'x-vercel-protection-bypass': process.env.VERCEL_AUTOMATION_BYPASS_SECRET }
         : {}),
+      ...(process.env.WORKSPACE_ACCESS_TOKEN
+        ? { 'x-ai-task-agent-access-token': process.env.WORKSPACE_ACCESS_TOKEN }
+        : {}),
     },
   });
   if (!response.ok) {
@@ -115,7 +118,14 @@ async function fetchJson(resourcePath) {
 
 function vercelCurlJson(resourcePath) {
   if (!vercelCli) throw new Error('Vercel CLI was not found for protected hosted smoke.');
-  const result = spawnSync(vercelCli, ['curl', `${baseUrl}${resourcePath}`], {
+  const args = ['curl', resourcePath, '--deployment', baseUrl];
+  if (process.env.VERCEL_AUTOMATION_BYPASS_SECRET) {
+    args.push('--protection-bypass', process.env.VERCEL_AUTOMATION_BYPASS_SECRET);
+  }
+  if (process.env.WORKSPACE_ACCESS_TOKEN) {
+    args.push('--', '--header', `x-ai-task-agent-access-token: ${process.env.WORKSPACE_ACCESS_TOKEN}`);
+  }
+  const result = spawnSync(vercelCli, args, {
     cwd: process.cwd(),
     encoding: 'utf8',
   });

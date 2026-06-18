@@ -139,7 +139,7 @@ for (const [command, commandArgs] of plan) {
 let hostedSmoke = null;
 if (deploymentUrl && !args['skip-hosted-smoke']) {
   const smokeEnv = {
-    ...process.env,
+    ...productionEnv,
     BASE_URL: deploymentUrl,
     REQUIRE_DURABLE: '1',
     REQUIRE_LIVE_LLM: '1',
