@@ -29,6 +29,27 @@ test('production launch dry-run accepts LangGraph as the live planner provider',
   assert.ok(report.commands.some((command) => command.includes('vercel deploy')));
 });
 
+test('production launch dry-run accepts Supabase as durable storage', async () => {
+  const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'ai-task-agent-launch-'));
+  const envFile = path.join(tmpDir, '.env.production.local');
+  const result = runLaunchDryRun(envFile, {
+    SUPABASE_URL: 'https://project.supabase.co',
+    SUPABASE_SERVICE_ROLE_KEY: 'supabase-service-role-key',
+    LANGGRAPH_BACKEND_URL: 'https://agent-backend.example.com',
+    GITHUB_TOKEN: 'github-token',
+    GITHUB_REPOSITORY: 'targix/ai-task-agent',
+    WORKSPACE_ACCESS_TOKEN: 'workspace-access-token',
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.ok, true);
+  assert.equal(report.storageMode, 'supabase');
+  assert.deepEqual(report.blockers, []);
+  assert.ok(report.commands.some((command) => command.includes('supabase:smoke')));
+  assert.equal(report.commands.some((command) => command.includes('d1:setup')), false);
+});
+
 test('production launch dry-run still blocks when no live planner provider is configured', async () => {
   const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'ai-task-agent-launch-'));
   const envFile = path.join(tmpDir, '.env.production.local');

@@ -12,6 +12,10 @@ const values = {
     'CLOUDFLARE_ACCOUNT_ID',
     'CLOUDFLARE_D1_DATABASE_ID',
     'CLOUDFLARE_API_TOKEN',
+    'SUPABASE_URL',
+    'SUPABASE_SERVICE_ROLE_KEY',
+    'SUPABASE_PUBLISHABLE_KEY',
+    'SUPABASE_ANON_KEY',
     'LANGGRAPH_BACKEND_URL',
     'OPENROUTER_API_KEY',
     'FREELLMAPI_BASE_URL',
@@ -25,12 +29,16 @@ const values = {
     'VERCEL_AUTOMATION_BYPASS_SECRET',
   ]),
 };
+const hasCloudflareRuntime =
+  values.CLOUDFLARE_ACCOUNT_ID && values.CLOUDFLARE_D1_DATABASE_ID && values.CLOUDFLARE_API_TOKEN;
+const hasCloudflareCreate = values.CLOUDFLARE_ACCOUNT_ID && values.CLOUDFLARE_API_TOKEN;
+const hasSupabaseRuntime =
+  values.SUPABASE_URL &&
+  (values.SUPABASE_SERVICE_ROLE_KEY || values.SUPABASE_PUBLISHABLE_KEY || values.SUPABASE_ANON_KEY);
+const storageMode = hasSupabaseRuntime ? 'supabase' : 'cloudflare-d1';
 const missing = {
   workspaceAccess: ['WORKSPACE_ACCESS_TOKEN'].filter((name) => !values[name]?.trim()),
-  cloudflareCreate: ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_API_TOKEN'].filter((name) => !values[name]?.trim()),
-  cloudflareRuntime: ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_D1_DATABASE_ID', 'CLOUDFLARE_API_TOKEN'].filter(
-    (name) => !values[name]?.trim(),
-  ),
+  durableStorage: hasCloudflareRuntime || hasCloudflareCreate || hasSupabaseRuntime ? [] : ['DURABLE_STORAGE'],
   liveLlm:
     values.LANGGRAPH_BACKEND_URL ||
     values.OPENROUTER_API_KEY ||
@@ -45,13 +53,19 @@ const missing = {
 };
 const blockers = [
   ...missing.workspaceAccess.map((name) => ({ group: 'workspace-access', name })),
-  ...missing.cloudflareCreate.map((name) => ({ group: 'cloudflare-create', name })),
-  ...missing.cloudflareRuntime.map((name) => ({ group: 'cloudflare-runtime', name })),
+  ...missing.durableStorage.map((name) => ({ group: 'durable-storage', name })),
   ...missing.liveLlm.map((name) => ({ group: 'live-llm', name })),
   ...missing.issueExport.map((name) => ({ group: 'issue-export', name })),
 ];
 const acceptedSecretSets = {
   workspaceAccess: [['WORKSPACE_ACCESS_TOKEN']],
+  durableStorage: [
+    ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_D1_DATABASE_ID', 'CLOUDFLARE_API_TOKEN'],
+    ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_API_TOKEN'],
+    ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'],
+    ['SUPABASE_URL', 'SUPABASE_PUBLISHABLE_KEY'],
+    ['SUPABASE_URL', 'SUPABASE_ANON_KEY'],
+  ],
   cloudflareCreate: [['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_API_TOKEN']],
   cloudflareRuntime: [['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_D1_DATABASE_ID', 'CLOUDFLARE_API_TOKEN']],
   liveLlm: [
@@ -65,13 +79,22 @@ const acceptedSecretSets = {
     ['GITHUB_TOKEN', 'GITHUB_REPOSITORY'],
   ],
 };
-const plan = [
+const basePlan = [
   ['npm', ['test']],
   ['npm', ['run', 'backend:test']],
   ['npm', ['run', 'eval:agent']],
   ['npm', ['run', 'build']],
-  ['npm', ['run', 'd1:setup', '--', '--name=ai-task-agent', '--location=apac', '--write-env']],
-  ['npm', ['run', 'd1:smoke']],
+];
+const storagePlan =
+  storageMode === 'supabase'
+    ? [['npm', ['run', 'supabase:smoke']]]
+    : [
+        ['npm', ['run', 'd1:setup', '--', '--name=ai-task-agent', '--location=apac', '--write-env']],
+        ['npm', ['run', 'd1:smoke']],
+      ];
+const plan = [
+  ...basePlan,
+  ...storagePlan,
   ['npm', ['run', 'vercel:env:sync', '--', '--apply', `--scope=${scope}`]],
   [findVercelCli(), ['deploy', '--yes', '--scope', scope]],
 ];
@@ -84,11 +107,12 @@ if (!apply) {
         dryRun: true,
         envFile,
         scope,
+        storageMode,
         blockers,
         acceptedSecretSets,
         commands: plan.map(([command, commandArgs]) => `${command} ${commandArgs.join(' ')}`),
         next: blockers.length
-          ? 'Fill WORKSPACE_ACCESS_TOKEN, Cloudflare D1, one live LLM set, and one issue export set, then rerun npm run production:launch -- --apply.'
+          ? 'Fill WORKSPACE_ACCESS_TOKEN, durable storage, one live LLM set, and one issue export set, then rerun npm run production:launch -- --apply.'
           : 'Run npm run production:launch -- --apply to execute this release path.',
       },
       null,

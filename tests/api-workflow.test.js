@@ -44,6 +44,11 @@ test('agent workflow creates PRD/tasks, enforces approval, then exports issues',
       .commands.some((command) => command.includes('d1:setup')),
   );
   assert.ok(preflight.body.setup.missingRequired.includes('CLOUDFLARE_D1_DATABASE_ID'));
+  assert.ok(preflight.body.setup.missingRequired.includes('SUPABASE_URL'));
+  assert.deepEqual(preflight.body.setup.acceptedSecretSets.durableStorage[2], [
+    'SUPABASE_URL',
+    'SUPABASE_SERVICE_ROLE_KEY',
+  ]);
   assert.deepEqual(preflight.body.setup.acceptedSecretSets.liveLlm[0], ['OPENROUTER_API_KEY']);
   assert.deepEqual(preflight.body.setup.acceptedSecretSets.issueExport[1], [
     'GITHUB_TOKEN',

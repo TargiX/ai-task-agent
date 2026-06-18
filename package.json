@@ -18,6 +18,7 @@
     "d1:setup": "node scripts/d1-setup.mjs",
     "d1:migrate": "node scripts/d1-migrate.mjs",
     "d1:smoke": "node scripts/d1-smoke.mjs",
+    "supabase:smoke": "node scripts/supabase-smoke.mjs",
     "vercel:env:sync": "node scripts/vercel-env-sync.mjs",
     "production:launch": "node scripts/production-launch.mjs",
     "production:smoke": "node scripts/production-smoke.mjs"

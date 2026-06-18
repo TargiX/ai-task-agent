@@ -40,6 +40,7 @@ npm run stress:smoke
 npm run visual:smoke
 npm run deploy:check
 npm run d1:migrate -- --dry-run
+npm run supabase:smoke
 ```
 
 Open `http://127.0.0.1:5173/`.
@@ -59,7 +60,7 @@ npm run production:launch
 npm run production:launch -- --apply --scope=targixs-projects
 ```
 
-`production:launch` is dry-run by default. With `--apply`, it runs tests/evals/build, creates or reuses Cloudflare D1, verifies D1, syncs Vercel env vars, and deploys a preview.
+`production:launch` is dry-run by default. With `--apply`, it runs tests/evals/build, verifies the configured durable storage path, syncs Vercel env vars, and deploys a preview. If Cloudflare create credentials are present, it can create or reuse D1; if Supabase env vars are present, it runs `supabase:smoke` instead.
 
 `npm run visual:smoke` opens the app with Playwright, runs the agent once, checks the readiness UI,
 guards against horizontal overflow, and writes screenshots into `qa/`.
@@ -175,6 +176,15 @@ The schema uses normalized tables:
 
 RLS is enabled on all public tables. Prefer `SUPABASE_SERVICE_ROLE_KEY` server-side only. For a public demo, publishable/anon keys can work if the demo policies in the migration are enabled.
 
+Supabase verification path:
+
+```bash
+cp .env.example .env.production.local
+# Fill SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.
+npm run supabase:smoke
+npm run vercel:env:sync -- --apply --scope=targixs-projects
+```
+
 ## Cloudflare D1
 
 Cloudflare D1 is the lightweight durable-storage alternative for this project. The adapter uses the official D1 HTTP query endpoint from Vercel Serverless Functions, so no Cloudflare Worker is required for this MVP.
@@ -207,7 +217,7 @@ Vercel env sync path:
 
 ```bash
 cp .env.example .env.production.local
-# Fill CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_D1_DATABASE_ID, CLOUDFLARE_API_TOKEN.
+# Fill Cloudflare D1 or Supabase durable storage variables.
 npm run vercel:env:sync
 npm run vercel:env:sync -- --apply --scope=targixs-projects
 ```
@@ -257,7 +267,7 @@ Implemented:
 - Run history and resume across JSON, Supabase, and Cloudflare D1 storage.
 - Workspace-key isolation for team runs across JSON, Supabase, and Cloudflare D1 storage.
 - Optional workspace access token guard for production previews and pilots.
-- Repeatable D1 migration, D1 smoke, Vercel env sync, and production smoke commands.
+- Repeatable D1 migration, D1 smoke, Supabase smoke, Vercel env sync, and production smoke commands.
 - Dry-run/apply production launch orchestration for tests, D1 setup, Vercel env sync, deploy, and final smoke handoff.
 - Human approval gate before export.
 - Editable task inspector and bulk approve/reject.
