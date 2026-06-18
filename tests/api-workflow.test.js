@@ -243,6 +243,7 @@ test('real issue export is idempotent and only sends newly approved tasks', asyn
   await isolateJsonStorage();
   process.env.GITHUB_TOKEN = 'github-token';
   process.env.GITHUB_REPOSITORY = 'owner/repo';
+  process.env.ALLOW_PUBLIC_REAL_ISSUE_EXPORT = '1';
   const previousFetch = global.fetch;
   const calls = [];
   global.fetch = async (url, options = {}) => {
@@ -339,6 +340,7 @@ test('partial issue export retries only failed tasks', async () => {
   await isolateJsonStorage();
   process.env.GITHUB_TOKEN = 'github-token';
   process.env.GITHUB_REPOSITORY = 'owner/repo';
+  process.env.ALLOW_PUBLIC_REAL_ISSUE_EXPORT = '1';
   const previousFetch = global.fetch;
   const calls = [];
   global.fetch = async (url, options = {}) => {
@@ -592,6 +594,7 @@ async function isolateJsonStorage() {
   delete process.env.GITHUB_TOKEN;
   delete process.env.GITHUB_REPOSITORY;
   delete process.env.WORKSPACE_ACCESS_TOKEN;
+  delete process.env.ALLOW_PUBLIC_REAL_ISSUE_EXPORT;
 
   const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'ai-task-agent-test-'));
   process.env.TASK_AGENT_DB_FILE = path.join(tmpDir, 'task-agent-db.json');

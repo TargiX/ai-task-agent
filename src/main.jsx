@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -615,31 +616,37 @@ function App() {
               </div>
               <h1>{prd ? prd.title : 'Product idea workspace'}</h1>
             </div>
-            <div className="nova-workspace-switcher">
-              <label>
-                <span>Workspace key</span>
-                <Input
-                  value={workspaceDraft}
-                  onChange={(event) => setWorkspaceDraft(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') switchWorkspace();
-                  }}
-                  aria-label="Workspace key"
-                />
-              </label>
-              <label>
-                <span>Access token</span>
-                <Input
-                  type="password"
-                  value={accessTokenDraft}
-                  onChange={(event) => setAccessTokenDraft(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') saveAccessToken();
-                  }}
-                  placeholder="demo-open"
-                  aria-label="Workspace access token"
-                />
-              </label>
+            <div className="nova-command-bar">
+              <FieldGroup className="nova-workspace-fields">
+                <Field>
+                  <FieldLabel htmlFor="workspace-key">Workspace</FieldLabel>
+                  <Input
+                    id="workspace-key"
+                    value={workspaceDraft}
+                    onChange={(event) => setWorkspaceDraft(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') switchWorkspace();
+                    }}
+                    aria-label="Workspace key"
+                  />
+                </Field>
+                {(provider.access === 'guarded' || accessTokenDraft) && (
+                  <Field>
+                    <FieldLabel htmlFor="workspace-token">Access token</FieldLabel>
+                    <Input
+                      id="workspace-token"
+                      type="password"
+                      value={accessTokenDraft}
+                      onChange={(event) => setAccessTokenDraft(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') saveAccessToken();
+                      }}
+                      placeholder="Paste token"
+                      aria-label="Workspace access token"
+                    />
+                  </Field>
+                )}
+              </FieldGroup>
               <Button
                 variant={workspaceKey === normalizeClientWorkspaceKey(workspaceDraft) ? 'outline' : 'secondary'}
                 onClick={switchWorkspace}
@@ -648,12 +655,12 @@ function App() {
                 <RefreshCw data-icon="inline-start" />
                 Switch
               </Button>
-              <Button variant="outline" onClick={saveAccessToken} disabled={busyAction === 'loading'}>
-                <Check data-icon="inline-start" />
-                Token
-              </Button>
-            </div>
-            <div className="nova-actions">
+              {(provider.access === 'guarded' || accessTokenDraft) && (
+                <Button variant="outline" onClick={saveAccessToken} disabled={busyAction === 'loading'}>
+                  <Check data-icon="inline-start" />
+                  Token
+                </Button>
+              )}
               <Button variant="outline" onClick={resetWorkspace} disabled={busyAction === 'reset'}>
                 {busyAction === 'reset' ? (
                   <Loader2 className="spin" data-icon="inline-start" />
@@ -685,26 +692,30 @@ function App() {
             <MetricCard label="Approved" value={counts.approved} />
             <MetricCard label="Pending" value={counts.pending} />
             <MetricCard label="Runs" value={runHistory.length} />
-            <MetricCard label="Workspace" value={workspace.workspace?.label || workspaceKey} text />
-            <MetricCard label="Access" value={provider.access || 'demo-open'} text />
-            <MetricCard label="AI mode" value={provider.ai} text />
-            <MetricCard label="Storage" value={provider.storage} text />
           </section>
+          <RuntimeStrip workspace={workspace.workspace?.label || workspaceKey} provider={provider} />
 
           <div className="nova-workspace" id="workspace">
             <section className="nova-left">
               <Card className="nova-idea-card" size="sm">
                 <CardHeader>
                   <CardTitle>Product idea</CardTitle>
-                  <Sparkles className="nova-card-icon" />
+                  <CardAction>
+                    <Sparkles className="nova-card-icon" />
+                  </CardAction>
                 </CardHeader>
-                <CardContent className="nova-form-stack">
-                  <Textarea
-                    value={idea}
-                    onChange={(event) => setIdea(event.target.value)}
-                    aria-label="Product idea"
-                    className="min-h-36 resize-y"
-                  />
+                <CardContent>
+                  <FieldGroup className="nova-form-stack">
+                    <Field>
+                      <FieldLabel htmlFor="product-idea">Product idea</FieldLabel>
+                      <Textarea
+                        id="product-idea"
+                        value={idea}
+                        onChange={(event) => setIdea(event.target.value)}
+                        aria-label="Product idea"
+                        className="min-h-36 resize-y"
+                      />
+                    </Field>
                   <Button onClick={runAgent} disabled={busyAction === 'agent'}>
                     {busyAction === 'agent' ? (
                       <Loader2 className="spin" data-icon="inline-start" />
@@ -720,6 +731,7 @@ function App() {
                       ? `Best ${freeModels[0].source || 'free'} model: ${freeModels[0].name || freeModels[0].id}`
                       : `Provider chain: ${provider.ai}`}
                   </p>
+                  </FieldGroup>
                 </CardContent>
               </Card>
 
@@ -735,7 +747,9 @@ function App() {
               <Card className="nova-graph-card" size="sm" id="agent-graph">
                 <CardHeader>
                   <CardTitle>Execution trace</CardTitle>
-                  <Workflow className="nova-card-icon" />
+                  <CardAction>
+                    <Workflow className="nova-card-icon" />
+                  </CardAction>
                 </CardHeader>
                 <CardContent>
                   <div className="nova-trace">
@@ -757,7 +771,9 @@ function App() {
               <Card className="nova-runtime-card" size="sm">
                 <CardHeader>
                   <CardTitle>Agent kernel</CardTitle>
-                  <Bot className="nova-card-icon" />
+                  <CardAction>
+                    <Bot className="nova-card-icon" />
+                  </CardAction>
                 </CardHeader>
                 <CardContent>
                   <div className="nova-kernel-grid">
@@ -802,7 +818,9 @@ function App() {
                   <Card size="sm" id="task-db">
                     <CardHeader>
                       <CardTitle>Task DB</CardTitle>
-                      <Database className="nova-card-icon" />
+                      <CardAction>
+                        <Database className="nova-card-icon" />
+                      </CardAction>
                     </CardHeader>
                     <CardContent>
                       <TaskTable
@@ -821,7 +839,9 @@ function App() {
                   <Card size="sm">
                     <CardHeader>
                       <CardTitle>{prd ? prd.title : 'Generated PRD'}</CardTitle>
-                      <FileText className="nova-card-icon" />
+                      <CardAction>
+                        <FileText className="nova-card-icon" />
+                      </CardAction>
                     </CardHeader>
                     <CardContent>
                       {prd ? <PrdView prd={prd} /> : <BlankState title="No PRD yet" />}
@@ -831,10 +851,12 @@ function App() {
 
                 <TabsContent value="logs">
                   <Card size="sm">
-                    <CardHeader>
-                      <CardTitle>Tool calls</CardTitle>
+                  <CardHeader>
+                    <CardTitle>Tool calls</CardTitle>
+                    <CardAction>
                       <Workflow className="nova-card-icon" />
-                    </CardHeader>
+                    </CardAction>
+                  </CardHeader>
                     <CardContent>
                       <RunLog logs={logs} />
                     </CardContent>
@@ -883,7 +905,9 @@ function RunHistoryPanel({ runs, activeRunId, provider, storageDetail, busyActio
     <Card className="nova-runs-card" size="sm" id="runs">
       <CardHeader>
         <CardTitle>Run history</CardTitle>
-        <History className="nova-card-icon" />
+        <CardAction>
+          <History className="nova-card-icon" />
+        </CardAction>
       </CardHeader>
       <CardContent>
         {jsonFallback && storageDetail ? <p className="nova-provider-line">{storageDetail}</p> : null}
@@ -941,6 +965,24 @@ function MetricCard({ label, value, text = false }) {
   );
 }
 
+function RuntimeStrip({ workspace, provider }) {
+  return (
+    <div className="nova-runtime-strip" aria-label="Runtime status">
+      <span>
+        Workspace <strong>{workspace}</strong>
+      </span>
+      <Badge variant="outline">AI {provider.ai}</Badge>
+      <Badge variant="outline">Storage {provider.storage}</Badge>
+      <Badge variant={provider.linear === 'configured' ? 'secondary' : 'outline'}>
+        Linear {provider.linear}
+      </Badge>
+      <Badge variant={provider.access === 'guarded' ? 'secondary' : 'outline'}>
+        {provider.access === 'guarded' ? 'Private access' : 'Public demo'}
+      </Badge>
+    </div>
+  );
+}
+
 function formatDateTime(value) {
   if (!value) return 'No timestamp';
   const date = new Date(value);
@@ -967,7 +1009,9 @@ function PreflightPanel({ preflight, verification, busyAction, verifySetup }) {
     <Card className="nova-preflight" size="sm" id="readiness">
       <CardHeader>
         <CardTitle>Production preflight</CardTitle>
-        <Settings className="nova-card-icon" />
+        <CardAction>
+          <Settings className="nova-card-icon" />
+        </CardAction>
       </CardHeader>
       <CardContent>
         {preflight ? (
@@ -1102,7 +1146,9 @@ function CoveragePanel({ capabilities }) {
     <Card className="nova-coverage" size="sm">
       <CardHeader>
         <CardTitle>Scope coverage</CardTitle>
-        <ListChecks className="nova-card-icon" />
+        <CardAction>
+          <ListChecks className="nova-card-icon" />
+        </CardAction>
       </CardHeader>
       <CardContent>
         {capabilities?.length ? (
@@ -1133,7 +1179,9 @@ function DemoReportPanel({ report, busyAction, runDemoReport }) {
     <Card className="nova-demo-report" size="sm">
       <CardHeader>
         <CardTitle>Demo report</CardTitle>
-        <CheckCircle2 className="nova-card-icon" />
+        <CardAction>
+          <CheckCircle2 className="nova-card-icon" />
+        </CardAction>
       </CardHeader>
       <CardContent className="nova-form-stack">
         <div className="nova-verification-head">
@@ -1315,28 +1363,30 @@ function Inspector({
     <Card className="nova-inspector" size="sm">
       <CardHeader>
         <CardTitle>{selectedTask ? selectedTask.id : 'Task inspector'}</CardTitle>
-        <Database className="nova-card-icon" />
+        <CardAction>
+          <Database className="nova-card-icon" />
+        </CardAction>
       </CardHeader>
       <CardContent>
         {selectedTask ? (
-          <div className="nova-form-stack">
-            <label>
-              Title
+          <FieldGroup className="nova-form-stack">
+            <Field>
+              <FieldLabel>Title</FieldLabel>
               <Input
                 value={taskDraft?.title || ''}
                 onChange={(event) => setTaskDraft((draft) => ({ ...draft, title: event.target.value }))}
               />
-            </label>
+            </Field>
             <div className="nova-editor-row">
-              <label>
-                Owner
+              <Field>
+                <FieldLabel>Owner</FieldLabel>
                 <Input
                   value={taskDraft?.owner || ''}
                   onChange={(event) => setTaskDraft((draft) => ({ ...draft, owner: event.target.value }))}
                 />
-              </label>
-              <label>
-                Priority
+              </Field>
+              <Field>
+                <FieldLabel>Priority</FieldLabel>
                 <Select
                   value={taskDraft?.priority || 'Medium'}
                   onValueChange={(value) => setTaskDraft((draft) => ({ ...draft, priority: value }))}
@@ -1352,33 +1402,33 @@ function Inspector({
                     </SelectGroup>
                   </SelectContent>
                 </Select>
-              </label>
+              </Field>
             </div>
-            <label>
-              Estimate
+            <Field>
+              <FieldLabel>Estimate</FieldLabel>
               <Input
                 value={taskDraft?.effort || ''}
                 onChange={(event) => setTaskDraft((draft) => ({ ...draft, effort: event.target.value }))}
               />
-            </label>
-            <label>
-              Acceptance criteria
+            </Field>
+            <Field>
+              <FieldLabel>Acceptance criteria</FieldLabel>
               <Textarea
                 value={taskDraft?.acceptance || ''}
                 onChange={(event) =>
                   setTaskDraft((draft) => ({ ...draft, acceptance: event.target.value }))
                 }
               />
-            </label>
-            <label>
-              Review note
+            </Field>
+            <Field>
+              <FieldLabel>Review note</FieldLabel>
               <Textarea
                 value={taskDraft?.reviewNote || ''}
                 onChange={(event) =>
                   setTaskDraft((draft) => ({ ...draft, reviewNote: event.target.value }))
                 }
               />
-            </label>
+            </Field>
             <div className="nova-inline-actions">
               <Button variant="outline" onClick={saveSelectedTask} disabled={busyAction === selectedTask.id}>
                 Save
@@ -1404,7 +1454,7 @@ function Inspector({
             <div className="nova-status-line">
               Status <StatusBadge status={selectedTask.status} />
             </div>
-          </div>
+          </FieldGroup>
         ) : (
           <BlankState title="Select a task" />
         )}
@@ -1441,7 +1491,9 @@ function ExportPanel({
     <Card className="nova-export" size="sm" id="exports">
       <CardHeader>
         <CardTitle>Issue export</CardTitle>
-        <GitPullRequest className="nova-card-icon" />
+        <CardAction>
+          <GitPullRequest className="nova-card-icon" />
+        </CardAction>
       </CardHeader>
       <CardContent className="nova-form-stack">
         <ToggleGroup
@@ -1462,6 +1514,11 @@ function ExportPanel({
         <p className="nova-provider-line">
           {exportTarget} connector: <strong>{provider[exportTarget.toLowerCase()]}</strong>
         </p>
+        {provider.access !== 'guarded' && provider[exportTarget.toLowerCase()] === 'configured' ? (
+          <p className="nova-provider-line">
+            Public demo mode prepares export packages; private access is required for real issue creation.
+          </p>
+        ) : null}
         <div className="nova-connector-check">
           <div className="nova-verification-head">
             <div>

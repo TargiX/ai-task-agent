@@ -8,7 +8,7 @@ import test from 'node:test';
 const scriptPath = path.resolve('scripts/production-launch.mjs');
 const envInitScriptPath = path.resolve('scripts/production-env-init.mjs');
 
-test('production env init creates env file and generates workspace access token once', async () => {
+test('production env init creates public env file and only generates workspace token on request', async () => {
   const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'ai-task-agent-env-init-'));
   const envFile = path.join(tmpDir, '.env.production.local');
   const first = runEnvInit(envFile);
@@ -16,26 +16,33 @@ test('production env init creates env file and generates workspace access token 
   assert.equal(first.status, 0, first.stderr);
   const firstReport = JSON.parse(first.stdout);
   assert.equal(firstReport.created, true);
-  assert.deepEqual(firstReport.generated, ['WORKSPACE_ACCESS_TOKEN']);
+  assert.deepEqual(firstReport.generated, []);
   assert.equal(first.stdout.includes('wat_'), false, 'stdout must not print the generated access token');
-  assert.equal(firstReport.readiness.workspaceAccess, 'ready');
+  assert.equal(firstReport.readiness.workspaceAccess, 'demo-open');
   assert.equal(firstReport.readiness.liveLlm, 'missing');
   assert.ok(firstReport.readiness.missingExternal.some((item) => item.group === 'durable-storage'));
   assert.ok(firstReport.readiness.missingExternal.some((item) => item.group === 'live-llm'));
 
   const envContents = await import('node:fs/promises').then((fs) => fs.readFile(envFile, 'utf8'));
-  const token = envContents.match(/^WORKSPACE_ACCESS_TOKEN=(wat_[^\n]+)$/m)?.[1];
-  assert.ok(token);
+  assert.equal(envContents.includes('WORKSPACE_ACCESS_TOKEN=wat_'), false);
   assert.match(envContents, /^LANGGRAPH_BACKEND_URL=$/m);
   assert.match(envContents, /^PUBLIC_APP_URL=$/m);
   assert.match(envContents, /^GITHUB_REPOSITORY=$/m);
 
-  const second = runEnvInit(envFile);
+  const second = runEnvInit(envFile, ['--generate-workspace-token']);
   assert.equal(second.status, 0, second.stderr);
   const secondReport = JSON.parse(second.stdout);
-  assert.deepEqual(secondReport.generated, []);
+  assert.deepEqual(secondReport.generated, ['WORKSPACE_ACCESS_TOKEN']);
   const nextContents = await import('node:fs/promises').then((fs) => fs.readFile(envFile, 'utf8'));
-  assert.equal(nextContents.match(/^WORKSPACE_ACCESS_TOKEN=(wat_[^\n]+)$/m)?.[1], token);
+  const token = nextContents.match(/^WORKSPACE_ACCESS_TOKEN=(wat_[^\n]+)$/m)?.[1];
+  assert.ok(token);
+
+  const third = runEnvInit(envFile);
+  assert.equal(third.status, 0, third.stderr);
+  const thirdReport = JSON.parse(third.stdout);
+  assert.deepEqual(thirdReport.generated, []);
+  const finalContents = await import('node:fs/promises').then((fs) => fs.readFile(envFile, 'utf8'));
+  assert.equal(finalContents.match(/^WORKSPACE_ACCESS_TOKEN=(wat_[^\n]+)$/m)?.[1], token);
 });
 
 test('production launch dry-run accepts LangGraph as the live planner provider', async () => {
@@ -98,7 +105,7 @@ test('production launch dry-run still blocks when no live planner provider is co
   assert.equal(report.ok, false);
   assert.ok(report.blockers.some((blocker) => blocker.group === 'live-llm' && blocker.name === 'OPENROUTER_API_KEY'));
   assert.match(report.next, /one live LLM credential set/);
-  assert.match(report.next, /WORKSPACE_ACCESS_TOKEN/);
+  assert.doesNotMatch(report.next, /WORKSPACE_ACCESS_TOKEN/);
 });
 
 test('production launch dry-run does not accept loopback LangGraph as a live production provider', async () => {

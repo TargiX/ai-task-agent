@@ -198,40 +198,51 @@ button:disabled {
   letter-spacing: 0;
 }
 
-.nova-actions {
+.nova-command-bar {
   display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.nova-workspace-switcher {
-  display: flex;
-  align-items: flex-end;
+  align-items: end;
   gap: 8px;
   margin-left: auto;
   flex-shrink: 0;
 }
 
-.nova-workspace-switcher label {
-  display: grid;
-  gap: 5px;
+.nova-workspace-fields {
+  display: flex;
+  flex: 0 0 190px;
+  flex-direction: row;
+  gap: 8px;
   min-width: 190px;
-  color: var(--muted-foreground);
-  font-size: 11px;
-  font-weight: 650;
-  text-transform: uppercase;
+  width: 190px;
 }
 
-.nova-workspace-switcher input {
-  height: 34px;
+.nova-workspace-fields:has(#workspace-token) {
+  flex-basis: 388px;
+  min-width: 388px;
+  width: 388px;
+}
+
+.nova-workspace-fields [data-slot="field"] {
+  flex: 0 0 190px;
+  min-width: 190px;
+  width: 190px;
+  gap: 6px;
+}
+
+.nova-workspace-fields [data-slot="field-label"] {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.nova-workspace-fields input {
   text-transform: lowercase;
 }
 
 .nova-status-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  grid-template-columns: repeat(4, minmax(140px, 1fr));
   gap: 10px;
-  margin: 14px 0;
+  margin: 14px 0 10px;
 }
 
 .nova-metric [data-slot="card-content"] {
@@ -243,19 +254,36 @@ button:disabled {
 
 .nova-metric span {
   color: var(--muted-foreground);
-  font-size: 11px;
-  font-weight: 650;
+  font-size: 12px;
+  font-weight: 500;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .nova-metric strong {
   font-size: 20px;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .nova-metric strong.text {
   font-size: 12px;
   text-transform: uppercase;
+}
+
+.nova-runtime-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+
+.nova-runtime-strip strong {
+  color: var(--foreground);
+  font-weight: 500;
 }
 
 .nova-workspace {
@@ -298,17 +326,7 @@ button:disabled {
 .nova-form-stack {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-}
-
-.nova-form-stack label {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  color: var(--muted-foreground);
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
+  gap: 12px;
 }
 
 .nova-provider-line {
@@ -381,10 +399,7 @@ button:disabled {
 .nova-kernel-grid > div,
 .nova-demo-grid > div {
   min-width: 0;
-  padding: 9px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--background);
+  padding: 0;
 }
 
 .nova-kernel-grid span,
@@ -427,10 +442,8 @@ button:disabled {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
   align-items: start;
-  padding: 9px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--background);
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
 }
 
 .nova-setup-row strong {
@@ -497,10 +510,8 @@ button:disabled {
 .nova-secret-set-row {
   display: grid;
   gap: 6px;
-  padding: 9px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--background);
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
 }
 
 .nova-secret-set-row > strong {
@@ -1015,12 +1026,23 @@ button:disabled {
     flex-direction: column;
   }
 
-  .nova-workspace-switcher,
-  .nova-actions {
+  .nova-command-bar {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .nova-workspace-fields,
+  .nova-workspace-fields [data-slot="field"] {
+    flex-basis: 100%;
+    min-width: 0;
     width: 100%;
   }
 
-  .nova-workspace-switcher label {
+  .nova-workspace-fields {
+    flex-direction: column;
+  }
+
+  .nova-command-bar > [data-slot="button"] {
     min-width: 0;
     flex: 1;
   }

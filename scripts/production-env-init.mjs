@@ -8,6 +8,7 @@ const envFile = path.resolve(args.from || '.env.production.local');
 const templateFile = path.resolve(args.template || '.env.example');
 const dryRun = Boolean(args['dry-run']);
 const rotateWorkspaceToken = Boolean(args['rotate-workspace-token']);
+const generateWorkspaceToken = rotateWorkspaceToken || Boolean(args['generate-workspace-token']);
 const tokenBytes = Number(args['token-bytes'] || 32);
 const UNSAFE_PRODUCTION_DEFAULTS = {
   LANGGRAPH_BACKEND_URL: new Set(['http://127.0.0.1:8000', 'http://localhost:8000']),
@@ -28,7 +29,7 @@ for (const line of merged) {
   }
 }
 
-if (rotateWorkspaceToken || !beforeValues.WORKSPACE_ACCESS_TOKEN?.trim()) {
+if (generateWorkspaceToken) {
   upsertValue(merged, 'WORKSPACE_ACCESS_TOKEN', `wat_${crypto.randomBytes(tokenBytes).toString('base64url')}`);
   generated.push('WORKSPACE_ACCESS_TOKEN');
 }
@@ -112,7 +113,7 @@ function productionReadiness(values) {
   }
 
   return {
-    workspaceAccess: has(values, 'WORKSPACE_ACCESS_TOKEN') ? 'ready' : 'missing',
+    workspaceAccess: has(values, 'WORKSPACE_ACCESS_TOKEN') ? 'guarded' : 'demo-open',
     durableStorage: hasCloudflareRuntime ? 'cloudflare-d1' : hasCloudflareCreate ? 'cloudflare-d1-create' : hasSupabase ? 'supabase' : 'missing',
     liveLlm: hasProductionLangGraph(values)
       ? 'langgraph'

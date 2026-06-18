@@ -37,7 +37,7 @@ const hasCloudflareCreate = values.CLOUDFLARE_ACCOUNT_ID && values.CLOUDFLARE_AP
 const hasSupabaseRuntime = values.SUPABASE_URL && values.SUPABASE_SERVICE_ROLE_KEY;
 const storageMode = hasSupabaseRuntime ? 'supabase' : 'cloudflare-d1';
 const missing = {
-  workspaceAccess: ['WORKSPACE_ACCESS_TOKEN'].filter((name) => !values[name]?.trim()),
+  workspaceAccess: [],
   durableStorage: hasCloudflareRuntime || hasCloudflareCreate || hasSupabaseRuntime ? [] : ['DURABLE_STORAGE'],
   liveLlm:
     hasProductionLangGraph(values.LANGGRAPH_BACKEND_URL) ||
@@ -97,7 +97,7 @@ const plan = [
   [findVercelCli(), ['deploy', '--prod', '--yes', '--scope', scope]],
 ];
 const hostedSmokeCommand =
-  'BASE_URL=<deployment-url> REQUIRE_DURABLE=1 REQUIRE_LIVE_LLM=1 REQUIRE_ISSUE_EXPORT=1 REQUIRE_ACCESS_GUARD=1 npm run hosted:smoke';
+  'BASE_URL=<deployment-url> REQUIRE_DURABLE=1 REQUIRE_LIVE_LLM=1 REQUIRE_ISSUE_EXPORT=1 npm run hosted:smoke';
 
 if (!apply) {
   console.log(
@@ -144,10 +144,9 @@ if (deploymentUrl && !args['skip-hosted-smoke']) {
     REQUIRE_DURABLE: '1',
     REQUIRE_LIVE_LLM: '1',
     REQUIRE_ISSUE_EXPORT: '1',
-    REQUIRE_ACCESS_GUARD: '1',
   };
   const result = run(process.execPath, ['scripts/hosted-smoke.mjs'], { env: smokeEnv });
-  const command = `BASE_URL=${deploymentUrl} REQUIRE_DURABLE=1 REQUIRE_LIVE_LLM=1 REQUIRE_ISSUE_EXPORT=1 REQUIRE_ACCESS_GUARD=1 npm run hosted:smoke`;
+  const command = `BASE_URL=${deploymentUrl} REQUIRE_DURABLE=1 REQUIRE_LIVE_LLM=1 REQUIRE_ISSUE_EXPORT=1 npm run hosted:smoke`;
   completed.push({ command, status: result.status });
   if (result.status !== 0) {
     throw new Error(`${command} failed:\n${result.stderr || result.stdout}`);
@@ -253,7 +252,6 @@ function parseJsonObject(output) {
 function formatMissingNext(items) {
   const groups = new Set(items.map((item) => item.group));
   const parts = [];
-  if (groups.has('workspace-access')) parts.push('WORKSPACE_ACCESS_TOKEN');
   if (groups.has('durable-storage')) parts.push('durable storage credentials');
   if (groups.has('live-llm')) parts.push('one live LLM credential set');
   if (groups.has('issue-export')) parts.push('one issue export credential set');
