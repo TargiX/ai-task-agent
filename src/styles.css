@@ -6,15 +6,15 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --bg: #dedede;
+  --bg: #e1e1e1;
   --surface: #ffffff;
-  --surface-soft: #f4f4f2;
-  --surface-softer: #f8f8f7;
+  --surface-soft: #f8f8f8;
+  --surface-softer: #fbfbfb;
   --ink: #090909;
   --text-muted: #7b7b7b;
   --faint: #aaaaa5;
-  --border: #e9e8e4;
-  --border-strong: #d9d8d3;
+  --border: #eeeeec;
+  --border-strong: #dfdfdc;
   --coral: #e45f43;
   --coral-soft: #f7e7e2;
   --amber: #b7791f;
