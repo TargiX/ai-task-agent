@@ -149,10 +149,6 @@ button:disabled {
   width: 100%;
 }
 
-.nova-stack-card {
-  margin-top: auto;
-}
-
 .nova-chip-list {
   display: flex;
   flex-wrap: wrap;
@@ -286,6 +282,56 @@ button:disabled {
   font-weight: 500;
 }
 
+.nova-flow-strip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.nova-flow-step {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  border-radius: 10px;
+  background: color-mix(in oklch, var(--background), var(--muted) 22%);
+}
+
+.nova-flow-step[data-state="done"] {
+  border-left-color: #0f9f7a;
+}
+
+.nova-flow-step[data-state="active"] {
+  border-left-color: #2457d6;
+  background: color-mix(in oklch, var(--accent), #2457d6 5%);
+}
+
+.nova-flow-step[data-state="waiting"] {
+  border-left-color: var(--border);
+}
+
+.nova-flow-step span,
+.nova-flow-step strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nova-flow-step span {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.nova-flow-step strong {
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 650;
+}
+
 .nova-workspace {
   display: grid;
   grid-template-columns: 330px minmax(0, 1fr) 330px;
@@ -309,6 +355,28 @@ button:disabled {
 .nova-tabs [data-slot="tabs-content"] {
   min-width: 0;
   width: 100%;
+}
+
+.nova-workflow-card [data-slot="tabs-content"],
+.nova-diagnostics-card [data-slot="tabs-content"] {
+  margin: 0;
+}
+
+.nova-workflow-header {
+  align-items: center;
+  gap: 12px;
+}
+
+.nova-workflow-header [data-slot="card-description"] {
+  margin-top: 2px;
+  max-width: 520px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.nova-card-tabs {
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .nova-left,
@@ -342,6 +410,31 @@ button:disabled {
 .nova-trace {
   display: grid;
   gap: 4px;
+}
+
+.nova-trace-grid {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.nova-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.nova-section-head strong {
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.nova-section-head span {
+  color: var(--muted-foreground);
+  font-size: 11px;
 }
 
 .nova-trace-row {
@@ -589,10 +682,9 @@ button:disabled {
 
 #workspace,
 #runs,
-#agent-graph,
 #task-db,
 #exports,
-#readiness {
+#diagnostics {
   scroll-margin-top: 14px;
 }
 
@@ -653,12 +745,26 @@ button:disabled {
 
 .nova-tabs {
   display: grid;
-  gap: 10px;
+  gap: 0;
 }
 
 .nova-tabs-head {
   display: flex;
   justify-content: space-between;
+}
+
+.nova-diagnostics {
+  margin-top: 14px;
+}
+
+.nova-diagnostic-tabs {
+  display: block;
+}
+
+.nova-diagnostic-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 18px;
 }
 
 .nova-task-db {
@@ -977,10 +1083,6 @@ button:disabled {
     justify-content: center;
   }
 
-  .nova-stack-card {
-    display: none;
-  }
-
   .nova-workspace {
     grid-template-columns: 310px minmax(0, 1fr);
   }
@@ -1055,12 +1157,39 @@ button:disabled {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .nova-flow-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .nova-flow-step:last-child {
+    grid-column: 1 / -1;
+  }
+
   .nova-demo-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .nova-workspace,
   .nova-right {
+    grid-template-columns: 1fr;
+  }
+
+  .nova-workflow-header {
+    align-items: start;
+  }
+
+  .nova-workflow-header [data-slot="card-action"] {
+    grid-column: 1 / -1;
+    grid-row: auto;
+    justify-self: start;
+  }
+
+  .nova-card-tabs {
+    justify-content: flex-start;
+  }
+
+  .nova-trace-grid,
+  .nova-diagnostic-grid {
     grid-template-columns: 1fr;
   }
 

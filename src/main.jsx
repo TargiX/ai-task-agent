@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -70,10 +70,9 @@ const sampleIdea =
 const navItems = [
   { label: 'Workspace', icon: LayoutDashboard, target: '#workspace', active: true },
   { label: 'Runs', icon: History, target: '#runs' },
-  { label: 'Agent graph', icon: Workflow, target: '#agent-graph' },
-  { label: 'Task DB', icon: Database, target: '#task-db' },
+  { label: 'Review', icon: ListChecks, target: '#task-db' },
   { label: 'Exports', icon: Send, target: '#exports' },
-  { label: 'Settings', icon: Settings, target: '#readiness' },
+  { label: 'Diagnostics', icon: Workflow, target: '#diagnostics' },
 ];
 
 const skillStack = [
@@ -236,6 +235,17 @@ function App() {
   const canExport = counts.approved > 0 && !['agent', 'export', 'package'].includes(busyAction);
   const activeExportPackage =
     exportPackage?.target === exportTarget && exportPackage?.runId === workspace.runId ? exportPackage : null;
+  const workflowSteps = useMemo(
+    () =>
+      buildWorkflowSteps({
+        idea,
+        prd,
+        counts,
+        exports,
+        busyAction,
+      }),
+    [idea, prd, counts, exports, busyAction]
+  );
 
   useEffect(() => {
     if (!selectedTask) {
@@ -589,21 +599,6 @@ function App() {
               );
             })}
           </nav>
-
-          <Card className="nova-stack-card" size="sm">
-            <CardHeader>
-              <CardTitle>Agent stack</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="nova-chip-list">
-                {skillStack.map((skill) => (
-                  <Badge key={skill} variant="secondary">
-                    {skill}
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
         </aside>
 
         <section className="nova-main">
@@ -694,12 +689,13 @@ function App() {
             <MetricCard label="Runs" value={runHistory.length} />
           </section>
           <RuntimeStrip workspace={workspace.workspace?.label || workspaceKey} provider={provider} />
+          <WorkflowOverview steps={workflowSteps} />
 
           <div className="nova-workspace" id="workspace">
             <section className="nova-left">
               <Card className="nova-idea-card" size="sm">
                 <CardHeader>
-                  <CardTitle>Product idea</CardTitle>
+                  <CardTitle>Start a run</CardTitle>
                   <CardAction>
                     <Sparkles className="nova-card-icon" />
                   </CardAction>
@@ -743,86 +739,37 @@ function App() {
                 busyAction={busyAction}
                 selectRun={selectRun}
               />
-
-              <Card className="nova-graph-card" size="sm" id="agent-graph">
-                <CardHeader>
-                  <CardTitle>Execution trace</CardTitle>
-                  <CardAction>
-                    <Workflow className="nova-card-icon" />
-                  </CardAction>
-                </CardHeader>
-                <CardContent>
-                  <div className="nova-trace">
-                    {(graph?.length ? graph : fallbackGraph()).map((node) => (
-                      <div className={`nova-trace-row ${node.status}`} key={node.id}>
-                        <span>
-                          <CircleDot />
-                        </span>
-                        <div>
-                          <strong>{node.label}</strong>
-                          <p>{node.status}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="nova-runtime-card" size="sm">
-                <CardHeader>
-                  <CardTitle>Agent kernel</CardTitle>
-                  <CardAction>
-                    <Bot className="nova-card-icon" />
-                  </CardAction>
-                </CardHeader>
-                <CardContent>
-                  <div className="nova-kernel-grid">
-                    <KernelFact label="Runtime" value="Node graph" />
-                    <KernelFact label="Planner" value={provider.ai} />
-                    <KernelFact label="State" value={provider.storage} />
-                    <KernelFact label="Gate" value={counts.approved ? 'resumable' : 'waiting'} />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <PreflightPanel
-                preflight={preflight}
-                verification={setupVerification}
-                busyAction={busyAction}
-                verifySetup={verifySetup}
-              />
-              <DemoReportPanel report={demoReport} busyAction={busyAction} runDemoReport={runDemoReport} />
-              <CoveragePanel capabilities={preflight?.capabilities} />
             </section>
 
             <section className="nova-center">
               <Tabs defaultValue="tasks" className="nova-tabs">
-                <div className="nova-tabs-head">
-                  <TabsList>
-                    <TabsTrigger value="tasks">
-                      <ListChecks data-icon="inline-start" />
-                      Tasks
-                    </TabsTrigger>
-                    <TabsTrigger value="prd">
-                      <FileText data-icon="inline-start" />
-                      PRD
-                    </TabsTrigger>
-                    <TabsTrigger value="logs">
-                      <Workflow data-icon="inline-start" />
-                      Logs
-                    </TabsTrigger>
-                  </TabsList>
-                </div>
-
-                <TabsContent value="tasks">
-                  <Card size="sm" id="task-db">
-                    <CardHeader>
-                      <CardTitle>Task DB</CardTitle>
-                      <CardAction>
-                        <Database className="nova-card-icon" />
-                      </CardAction>
-                    </CardHeader>
-                    <CardContent>
+                <Card className="nova-workflow-card" size="sm">
+                  <CardHeader className="nova-workflow-header">
+                    <div>
+                      <CardTitle>Run workspace</CardTitle>
+                      <CardDescription>
+                        {prd ? 'Review generated planning output, then approve tasks for export.' : 'Generate a PRD and task queue from the product idea.'}
+                      </CardDescription>
+                    </div>
+                    <CardAction>
+                      <TabsList variant="line" className="nova-card-tabs">
+                        <TabsTrigger value="tasks">
+                          <ListChecks data-icon="inline-start" />
+                          Tasks
+                        </TabsTrigger>
+                        <TabsTrigger value="prd">
+                          <FileText data-icon="inline-start" />
+                          PRD
+                        </TabsTrigger>
+                        <TabsTrigger value="logs">
+                          <Workflow data-icon="inline-start" />
+                          Trace
+                        </TabsTrigger>
+                      </TabsList>
+                    </CardAction>
+                  </CardHeader>
+                  <CardContent>
+                    <TabsContent value="tasks" id="task-db">
                       <TaskTable
                         tasks={tasks}
                         selectedTask={selectedTask}
@@ -831,37 +778,17 @@ function App() {
                         updateTaskStatus={updateTaskStatus}
                         updateTaskBatch={updateTaskBatch}
                       />
-                    </CardContent>
-                  </Card>
-                </TabsContent>
+                    </TabsContent>
 
-                <TabsContent value="prd">
-                  <Card size="sm">
-                    <CardHeader>
-                      <CardTitle>{prd ? prd.title : 'Generated PRD'}</CardTitle>
-                      <CardAction>
-                        <FileText className="nova-card-icon" />
-                      </CardAction>
-                    </CardHeader>
-                    <CardContent>
+                    <TabsContent value="prd">
                       {prd ? <PrdView prd={prd} /> : <BlankState title="No PRD yet" />}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
+                    </TabsContent>
 
-                <TabsContent value="logs">
-                  <Card size="sm">
-                  <CardHeader>
-                    <CardTitle>Tool calls</CardTitle>
-                    <CardAction>
-                      <Workflow className="nova-card-icon" />
-                    </CardAction>
-                  </CardHeader>
-                    <CardContent>
-                      <RunLog logs={logs} />
-                    </CardContent>
-                  </Card>
-                </TabsContent>
+                    <TabsContent value="logs">
+                      <TraceLogPanel graph={graph} logs={logs} />
+                    </TabsContent>
+                  </CardContent>
+                </Card>
               </Tabs>
             </section>
 
@@ -893,6 +820,18 @@ function App() {
               />
             </aside>
           </div>
+
+          <DiagnosticsPanel
+            provider={provider}
+            counts={counts}
+            preflight={preflight}
+            verification={setupVerification}
+            busyAction={busyAction}
+            verifySetup={verifySetup}
+            report={demoReport}
+            runDemoReport={runDemoReport}
+            capabilities={preflight?.capabilities}
+          />
         </section>
       </main>
     </TooltipProvider>
@@ -965,6 +904,59 @@ function MetricCard({ label, value, text = false }) {
   );
 }
 
+function WorkflowOverview({ steps }) {
+  return (
+    <section className="nova-flow-strip" aria-label="Run flow">
+      {steps.map((step) => (
+        <div key={step.id} className="nova-flow-step" data-state={step.state}>
+          <span>{step.label}</span>
+          <strong>{step.value}</strong>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function buildWorkflowSteps({ idea, prd, counts, exports, busyAction }) {
+  const hasIdea = Boolean(idea.trim());
+  const totalReviewed = counts.approved + counts.rejected;
+  const hasTasks = counts.total > 0;
+  const hasExport = exports.length > 0;
+
+  return [
+    {
+      id: 'idea',
+      label: 'Idea',
+      value: hasIdea ? 'captured' : 'empty',
+      state: hasIdea ? 'done' : 'waiting',
+    },
+    {
+      id: 'prd',
+      label: 'PRD',
+      value: prd ? 'generated' : busyAction === 'agent' ? 'running' : 'waiting',
+      state: prd ? 'done' : busyAction === 'agent' ? 'active' : 'waiting',
+    },
+    {
+      id: 'tasks',
+      label: 'Tasks',
+      value: hasTasks ? `${counts.total} planned` : 'none yet',
+      state: hasTasks ? 'done' : 'waiting',
+    },
+    {
+      id: 'review',
+      label: 'Review',
+      value: hasTasks ? `${totalReviewed}/${counts.total} reviewed` : 'blocked',
+      state: counts.pending > 0 ? 'active' : hasTasks ? 'done' : 'waiting',
+    },
+    {
+      id: 'export',
+      label: 'Export',
+      value: hasExport ? `${exports.length} sent` : counts.approved ? 'package ready' : 'needs approval',
+      state: hasExport ? 'done' : counts.approved ? 'active' : 'waiting',
+    },
+  ];
+}
+
 function RuntimeStrip({ workspace, provider }) {
   return (
     <div className="nova-runtime-strip" aria-label="Runtime status">
@@ -1004,16 +996,107 @@ function KernelFact({ label, value }) {
   );
 }
 
-function PreflightPanel({ preflight, verification, busyAction, verifySetup }) {
+function DiagnosticsPanel({
+  provider,
+  counts,
+  preflight,
+  verification,
+  busyAction,
+  verifySetup,
+  report,
+  runDemoReport,
+  capabilities,
+}) {
   return (
-    <Card className="nova-preflight" size="sm" id="readiness">
-      <CardHeader>
-        <CardTitle>Production preflight</CardTitle>
-        <CardAction>
-          <Settings className="nova-card-icon" />
-        </CardAction>
-      </CardHeader>
-      <CardContent>
+    <section className="nova-diagnostics" id="diagnostics">
+      <Tabs defaultValue="runtime" className="nova-diagnostic-tabs">
+        <Card className="nova-diagnostics-card" size="sm">
+          <CardHeader className="nova-workflow-header">
+            <div>
+              <CardTitle>Diagnostics</CardTitle>
+              <CardDescription>Runtime proof, launch readiness, and scope coverage.</CardDescription>
+            </div>
+            <CardAction>
+              <TabsList variant="line" className="nova-card-tabs">
+                <TabsTrigger value="runtime">
+                  <Bot data-icon="inline-start" />
+                  Runtime
+                </TabsTrigger>
+                <TabsTrigger value="preflight">
+                  <Settings data-icon="inline-start" />
+                  Preflight
+                </TabsTrigger>
+                <TabsTrigger value="coverage">
+                  <ListChecks data-icon="inline-start" />
+                  Coverage
+                </TabsTrigger>
+                <TabsTrigger value="demo">
+                  <CheckCircle2 data-icon="inline-start" />
+                  Report
+                </TabsTrigger>
+              </TabsList>
+            </CardAction>
+          </CardHeader>
+          <CardContent>
+            <TabsContent value="runtime">
+              <RuntimeDiagnostics provider={provider} counts={counts} />
+            </TabsContent>
+            <TabsContent value="preflight">
+              <PreflightContent
+                preflight={preflight}
+                verification={verification}
+                busyAction={busyAction}
+                verifySetup={verifySetup}
+              />
+            </TabsContent>
+            <TabsContent value="coverage">
+              <CoverageContent capabilities={capabilities} />
+            </TabsContent>
+            <TabsContent value="demo">
+              <DemoReportContent report={report} busyAction={busyAction} runDemoReport={runDemoReport} />
+            </TabsContent>
+          </CardContent>
+        </Card>
+      </Tabs>
+    </section>
+  );
+}
+
+function RuntimeDiagnostics({ provider, counts }) {
+  return (
+    <div className="nova-diagnostic-grid">
+      <div>
+        <div className="nova-section-head">
+          <strong>Agent kernel</strong>
+          <span>{provider.storage}</span>
+        </div>
+        <div className="nova-kernel-grid">
+          <KernelFact label="Runtime" value="Node graph" />
+          <KernelFact label="Planner" value={provider.ai} />
+          <KernelFact label="State" value={provider.storage} />
+          <KernelFact label="Gate" value={counts.approved ? 'resumable' : 'waiting'} />
+        </div>
+      </div>
+      <div>
+        <div className="nova-section-head">
+          <strong>Agent stack</strong>
+          <span>{skillStack.length} modules</span>
+        </div>
+        <div className="nova-chip-list">
+          {skillStack.map((skill) => (
+            <Badge key={skill} variant="secondary">
+              {skill}
+            </Badge>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PreflightContent({ preflight, verification, busyAction, verifySetup }) {
+  return (
+    <>
         {preflight ? (
           <div className="nova-preflight-list">
             {preflight.checks.map((check) => (
@@ -1096,8 +1179,7 @@ function PreflightPanel({ preflight, verification, busyAction, verifySetup }) {
             <Skeleton className="h-10 w-full" />
           </div>
         )}
-      </CardContent>
-    </Card>
+    </>
   );
 }
 
@@ -1141,16 +1223,9 @@ function formatSecretGroup(value) {
     .replace(/^./, (letter) => letter.toUpperCase());
 }
 
-function CoveragePanel({ capabilities }) {
+function CoverageContent({ capabilities }) {
   return (
-    <Card className="nova-coverage" size="sm">
-      <CardHeader>
-        <CardTitle>Scope coverage</CardTitle>
-        <CardAction>
-          <ListChecks className="nova-card-icon" />
-        </CardAction>
-      </CardHeader>
-      <CardContent>
+    <>
         {capabilities?.length ? (
           <div className="nova-coverage-list">
             {capabilities.map((item) => (
@@ -1169,21 +1244,13 @@ function CoveragePanel({ capabilities }) {
             <Skeleton className="h-10 w-full" />
           </div>
         )}
-      </CardContent>
-    </Card>
+    </>
   );
 }
 
-function DemoReportPanel({ report, busyAction, runDemoReport }) {
+function DemoReportContent({ report, busyAction, runDemoReport }) {
   return (
-    <Card className="nova-demo-report" size="sm">
-      <CardHeader>
-        <CardTitle>Demo report</CardTitle>
-        <CardAction>
-          <CheckCircle2 className="nova-card-icon" />
-        </CardAction>
-      </CardHeader>
-      <CardContent className="nova-form-stack">
+    <div className="nova-form-stack">
         <div className="nova-verification-head">
           <div>
             <strong>{report ? report.summary.title : 'End-to-end dry run'}</strong>
@@ -1219,8 +1286,7 @@ function DemoReportPanel({ report, busyAction, runDemoReport }) {
             </div>
           </>
         ) : null}
-      </CardContent>
-    </Card>
+    </div>
   );
 }
 
@@ -1641,6 +1707,39 @@ function PrdView({ prd }) {
       <SummaryList title="MVP scope" items={prd.scope} />
       <SummaryList title="Retrieved context" items={prd.context || []} />
       <SummaryList title="Validation checks" items={prd.validation || prd.checks || []} />
+    </div>
+  );
+}
+
+function TraceLogPanel({ graph, logs }) {
+  return (
+    <div className="nova-trace-grid">
+      <section>
+        <div className="nova-section-head">
+          <strong>Agent graph</strong>
+          <span>state machine</span>
+        </div>
+        <div className="nova-trace">
+          {(graph?.length ? graph : fallbackGraph()).map((node) => (
+            <div className={`nova-trace-row ${node.status}`} key={node.id}>
+              <span>
+                <CircleDot />
+              </span>
+              <div>
+                <strong>{node.label}</strong>
+                <p>{node.status}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+      <section>
+        <div className="nova-section-head">
+          <strong>Tool calls</strong>
+          <span>{logs.length ? `${logs.length} events` : 'waiting'}</span>
+        </div>
+        <RunLog logs={logs} />
+      </section>
     </div>
   );
 }
