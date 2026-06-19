@@ -399,7 +399,7 @@ button:disabled {
 
 .nova-example-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 6px;
 }
 
@@ -1208,10 +1208,6 @@ button:disabled {
 
   .nova-demo-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .nova-example-grid {
-    grid-template-columns: 1fr;
   }
 
   .nova-workspace,
