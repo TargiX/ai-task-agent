@@ -23,7 +23,13 @@
   --shadow: 0 24px 70px rgba(22, 22, 20, 0.08);
   color: var(--ink);
   font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
   font-synthesis: none;
   line-height: 1.45;
   text-rendering: geometricPrecision;
@@ -167,7 +173,7 @@ button:disabled {
   gap: 18px;
   min-height: 100%;
   padding: 22px 16px;
-  background: #ffffff;
+  background: #f8f8f8;
 }
 
 .nova-brand {
@@ -180,20 +186,22 @@ button:disabled {
 .nova-brand-mark {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
   border-radius: 999px;
   color: white;
   background: var(--foreground);
 }
 
 .nova-brand-mark svg {
-  width: 18px;
-  height: 18px;
+  display: block;
+  width: 22px;
+  height: 22px;
 }
 
 .nova-brand strong,
-.nova-brand span {
+.nova-brand > div > span {
   display: block;
 }
 
@@ -202,7 +210,7 @@ button:disabled {
   line-height: 1.15;
 }
 
-.nova-brand span {
+.nova-brand > div > span {
   margin-top: 2px;
   color: var(--muted-foreground);
   font-size: 11px;
@@ -316,6 +324,15 @@ button:disabled {
   margin: 14px 0 10px;
 }
 
+.nova-metric:not(:last-child) {
+  border-right: 1px solid #cccccc6e;
+  border-radius: 0 !important;
+}
+
+.nova-metric [data-slot="card"] {
+  background: transparent !important;
+}
+
 .nova-metric [data-slot="card-content"] {
   display: flex;
   align-items: center;
@@ -424,6 +441,13 @@ button:disabled {
 .nova-workflow-card [data-slot="tabs-content"],
 .nova-diagnostics-card [data-slot="tabs-content"] {
   margin: 0;
+}
+
+[data-slot="card-header"].card-header-inset {
+  background: #ffffff;
+  border-radius: 20px;
+  margin: -8px 5px -5px;
+  padding: 13px 13px 5px;
 }
 
 .nova-workflow-header {
@@ -873,7 +897,7 @@ button:disabled {
 
 .nova-task-db {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .nova-table-actions {
@@ -887,7 +911,25 @@ button:disabled {
 .nova-table-actions > span {
   color: var(--muted-foreground);
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 550;
+}
+
+.nova-table-actions > span strong,
+.nova-table-actions > span small {
+  display: block;
+}
+
+.nova-table-actions > span strong {
+  color: var(--foreground);
+  font-size: 18px;
+  line-height: 1.05;
+}
+
+.nova-table-actions > span small {
+  margin-top: 2px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.2;
 }
 
 .nova-table-actions > div {
@@ -897,52 +939,108 @@ button:disabled {
   justify-content: flex-end;
 }
 
-.nova-table-wrap {
-  width: 100%;
-  max-width: 100%;
-  overflow: auto;
-}
-
-.nova-table-wrap [data-slot="table"] {
-  width: 100%;
-  table-layout: fixed;
-}
-
-.nova-table-wrap tr[data-state="selected"] {
-  background: #ffffff;
-}
-
-.nova-task-cell {
+.nova-ticket-list {
   display: grid;
-  gap: 5px;
-  min-width: 0;
-  overflow: hidden;
+  gap: 10px;
 }
 
-.nova-task-title-line {
+.nova-ticket-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 170px auto;
+  gap: 14px;
+  align-items: start;
+  min-width: 0;
+  padding: 14px;
+  border-radius: 24px;
+  background: #ffffff;
+  cursor: pointer;
+  outline: none;
+  transition:
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.nova-ticket-card:hover,
+.nova-ticket-card:focus-visible {
+  transform: translateY(-1px);
+  background: var(--surface-softer);
+}
+
+.nova-ticket-card:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--coral), transparent 78%);
+}
+
+.nova-ticket-card[data-state="selected"] {
+  background: var(--coral-soft);
+}
+
+.nova-ticket-main {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.nova-ticket-kicker {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 6px;
 }
 
-.nova-task-cell strong {
-  display: block;
-  font-size: 13px;
-  line-height: 1.2;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.nova-ticket-kicker > span {
+  display: inline-grid;
+  place-items: center;
+  min-width: 28px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 750;
 }
 
-.nova-task-cell span {
+.nova-ticket-kicker code {
+  color: var(--muted-foreground);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+}
+
+.nova-ticket-card h3 {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 15px;
+  font-weight: 760;
+  line-height: 1.22;
+}
+
+.nova-ticket-card p {
   display: block;
+  margin: 0;
   color: var(--muted-foreground);
   font-size: 12px;
-  line-height: 1.35;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.42;
+}
+
+.nova-ticket-meta {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+
+.nova-ticket-meta [data-slot="badge"],
+.nova-ticket-kicker [data-slot="badge"] {
+  max-width: 100%;
+}
+
+.nova-ticket-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .nova-editor-row {
@@ -1194,6 +1292,15 @@ button:disabled {
     grid-column: 1 / -1;
     grid-template-columns: minmax(0, 1fr) 330px;
   }
+
+  .nova-ticket-card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .nova-ticket-meta,
+  .nova-ticket-actions {
+    justify-content: flex-start;
+  }
 }
 
 @media (max-width: 860px) {
@@ -1300,14 +1407,23 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
-  .nova-table-wrap {
-    max-width: calc(100vw - 20px);
+  .nova-ticket-card {
+    padding: 12px;
+    border-radius: 22px;
+  }
+
+  .nova-ticket-card h3 {
+    font-size: 14px;
+  }
+
+  .nova-ticket-actions [data-slot="button"]:not([data-size^="icon"]) {
+    flex: 1 1 120px;
   }
 }
 
 @theme inline {
   --font-heading: var(--font-sans);
-  --font-sans: 'Geist Variable', sans-serif;
+  --font-sans: "Geist Variable", sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);

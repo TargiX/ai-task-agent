@@ -26,14 +26,6 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -810,7 +802,7 @@ function App() {
             <section className="nova-center">
               <Tabs defaultValue="tasks" className="nova-tabs">
                 <Card className="nova-workflow-card" size="sm">
-                  <CardHeader className="nova-workflow-header">
+                  <CardHeader className="nova-workflow-header" inset>
                     <div>
                       <CardTitle>Run workspace</CardTitle>
                       <CardDescription>
@@ -836,7 +828,7 @@ function App() {
                   </CardHeader>
                   <CardContent>
                     <TabsContent value="tasks" id="task-db">
-                      <TaskTable
+                      <TaskList
                         tasks={tasks}
                         selectedTask={selectedTask}
                         busyAction={busyAction}
@@ -1378,7 +1370,7 @@ function ReadinessBadge({ status }) {
   return <Badge variant={variant}>{status}</Badge>;
 }
 
-function TaskTable({
+function TaskList({
   tasks,
   selectedTask,
   busyAction,
@@ -1391,11 +1383,15 @@ function TaskTable({
   }
   const pendingCount = tasks.filter((task) => task.status === 'pending').length;
   const batchBusy = busyAction.startsWith('batch-') || ['agent', 'export'].includes(busyAction);
+  const reviewedCount = tasks.length - pendingCount;
 
   return (
     <div className="nova-task-db">
       <div className="nova-table-actions">
-        <span>{pendingCount} pending review</span>
+        <span>
+          <strong>{tasks.length}</strong> tickets
+          <small>{pendingCount ? `${pendingCount} pending review` : `${reviewedCount} reviewed`}</small>
+        </span>
         <div>
           <Button
             variant="secondary"
@@ -1417,79 +1413,109 @@ function TaskTable({
           </Button>
         </div>
       </div>
-      <div className="nova-table-wrap">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Task</TableHead>
-              <TableHead className="w-28">Review</TableHead>
-              <TableHead className="w-10" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {tasks.map((task) => (
-              <TableRow
-                key={task.id}
-                data-state={selectedTask?.id === task.id ? 'selected' : undefined}
-                onClick={() => setSelectedTaskId(task.id)}
+      <div className="nova-ticket-list" aria-label="Generated task tickets">
+        {tasks.map((task, index) => (
+          <article
+            key={task.id}
+            className="nova-ticket-card"
+            data-state={selectedTask?.id === task.id ? 'selected' : undefined}
+            onClick={() => setSelectedTaskId(task.id)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                setSelectedTaskId(task.id);
+              }
+            }}
+            role="button"
+            tabIndex={0}
+          >
+            <div className="nova-ticket-main">
+              <div className="nova-ticket-kicker">
+                <span>{String(index + 1).padStart(2, '0')}</span>
+                <code>{task.id}</code>
+                <StatusBadge status={task.status} />
+              </div>
+              <h3>{task.title}</h3>
+              <p>{task.acceptance}</p>
+            </div>
+            <div className="nova-ticket-meta">
+              <Badge variant="outline">{task.owner}</Badge>
+              <Badge variant={task.priority === 'High' ? 'destructive' : 'secondary'}>{task.priority}</Badge>
+              <Badge variant="secondary">{task.effort || 'Unestimated'}</Badge>
+            </div>
+            <div className="nova-ticket-actions">
+              <Button
+                variant={task.status === 'approved' ? 'secondary' : 'outline'}
+                size="sm"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  updateTaskStatus(task.id, 'approved');
+                }}
+                disabled={busyAction === task.id || task.status === 'approved'}
               >
-                <TableCell>
-                  <div className="nova-task-cell">
-                    <div className="nova-task-title-line">
-                      <span className="font-mono text-xs text-muted-foreground">{task.id}</span>
-                      <Badge variant={task.priority === 'High' ? 'destructive' : 'secondary'}>
-                        {task.priority}
-                      </Badge>
-                      <Badge variant="outline">{task.owner}</Badge>
-                    </div>
-                    <strong>{task.title}</strong>
-                    <span>{task.acceptance}</span>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <StatusBadge status={task.status} />
-                </TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        <MoreHorizontal />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuGroup>
-                        <DropdownMenuItem
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            updateTaskStatus(task.id, 'approved');
-                          }}
-                          disabled={busyAction === task.id}
-                        >
-                          <Check />
-                          Approve
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            updateTaskStatus(task.id, 'rejected');
-                          }}
-                          disabled={busyAction === task.id}
-                        >
-                          <X />
-                          Reject
-                        </DropdownMenuItem>
-                      </DropdownMenuGroup>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                <Check data-icon="inline-start" />
+                Approve
+              </Button>
+              <Button
+                variant={task.status === 'rejected' ? 'destructive' : 'outline'}
+                size="sm"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  updateTaskStatus(task.id, 'rejected');
+                }}
+                disabled={busyAction === task.id || task.status === 'rejected'}
+              >
+                <X data-icon="inline-start" />
+                Reject
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`More actions for ${task.id}`}
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <MoreHorizontal />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setSelectedTaskId(task.id);
+                      }}
+                    >
+                      <FileText />
+                      Inspect details
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        updateTaskStatus(task.id, 'approved');
+                      }}
+                      disabled={busyAction === task.id}
+                    >
+                      <Check />
+                      Approve
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        updateTaskStatus(task.id, 'rejected');
+                      }}
+                      disabled={busyAction === task.id}
+                    >
+                      <X />
+                      Reject
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </article>
+        ))}
       </div>
     </div>
   );
