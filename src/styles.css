@@ -326,10 +326,10 @@ button:disabled {
 
 .nova-metric:not(:last-child) {
   border-right: 1px solid #cccccc6e;
-  border-radius: 0 !important;
 }
 
 .nova-metric [data-slot="card"] {
+  border-radius: 0 !important;
   background: transparent !important;
 }
 
@@ -946,11 +946,9 @@ button:disabled {
 
 .nova-ticket-card {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 170px auto;
-  gap: 14px;
-  align-items: start;
+  gap: 12px;
   min-width: 0;
-  padding: 14px;
+  padding: 14px 14px 12px;
   border-radius: 24px;
   background: #ffffff;
   cursor: pointer;
@@ -974,10 +972,11 @@ button:disabled {
   background: var(--coral-soft);
 }
 
-.nova-ticket-main {
-  display: grid;
-  gap: 7px;
-  min-width: 0;
+.nova-ticket-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .nova-ticket-kicker {
@@ -1005,6 +1004,13 @@ button:disabled {
   font-size: 11px;
 }
 
+.nova-ticket-body {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  max-width: 680px;
+}
+
 .nova-ticket-card h3 {
   margin: 0;
   color: var(--foreground);
@@ -1021,16 +1027,16 @@ button:disabled {
   line-height: 1.42;
 }
 
-.nova-ticket-meta {
+.nova-ticket-footer {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   flex-wrap: wrap;
-  justify-content: flex-end;
   gap: 6px;
   min-width: 0;
+  padding-top: 2px;
 }
 
-.nova-ticket-meta [data-slot="badge"],
+.nova-ticket-footer [data-slot="badge"],
 .nova-ticket-kicker [data-slot="badge"] {
   max-width: 100%;
 }
@@ -1293,11 +1299,11 @@ button:disabled {
     grid-template-columns: minmax(0, 1fr) 330px;
   }
 
-  .nova-ticket-card {
-    grid-template-columns: minmax(0, 1fr);
+  .nova-ticket-head {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
-  .nova-ticket-meta,
   .nova-ticket-actions {
     justify-content: flex-start;
   }
@@ -1412,13 +1418,14 @@ button:disabled {
     border-radius: 22px;
   }
 
+  .nova-ticket-head {
+    gap: 9px;
+  }
+
   .nova-ticket-card h3 {
     font-size: 14px;
   }
 
-  .nova-ticket-actions [data-slot="button"]:not([data-size^="icon"]) {
-    flex: 1 1 120px;
-  }
 }
 
 @theme inline {
