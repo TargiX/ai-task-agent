@@ -67,6 +67,36 @@ import './styles.css';
 const sampleIdea =
   'A lightweight customer feedback portal for B2B SaaS teams. Users submit feature requests, product managers cluster similar ideas, and approved requests sync into engineering planning.';
 
+const exampleIdeas = [
+  {
+    label: 'Feedback portal',
+    idea: sampleIdea,
+  },
+  {
+    label: 'Billing ops',
+    idea: 'A billing operations assistant for SaaS finance teams. It watches failed payments, explains churn risk, drafts customer-safe follow-ups, and creates engineering tasks for payment bugs.',
+  },
+  {
+    label: 'Analytics review',
+    idea: 'An analytics review workspace where product teams inspect dashboard anomalies, define metric changes, and export approved investigation tasks to engineering.',
+  },
+];
+
+const runArtifacts = [
+  {
+    label: 'PRD',
+    detail: 'Problem, audience, goals, MVP scope',
+  },
+  {
+    label: 'Review queue',
+    detail: 'Editable tasks with owner, priority, estimate',
+  },
+  {
+    label: 'Issue package',
+    detail: 'Linear/GitHub payload after approval',
+  },
+];
+
 const navItems = [
   { label: 'Workspace', icon: LayoutDashboard, target: '#workspace', active: true },
   { label: 'Runs', icon: History, target: '#runs' },
@@ -137,7 +167,11 @@ function accessTokenHeader() {
 
 function currentWorkspaceKey() {
   if (typeof localStorage === 'undefined') return 'default';
-  return normalizeClientWorkspaceKey(localStorage.getItem(workspaceStorageKey) || 'default');
+  const stored = localStorage.getItem(workspaceStorageKey);
+  if (stored) return normalizeClientWorkspaceKey(stored);
+  const generated = createGuestWorkspaceKey();
+  localStorage.setItem(workspaceStorageKey, generated);
+  return generated;
 }
 
 function currentAccessToken() {
@@ -153,6 +187,13 @@ function normalizeClientWorkspaceKey(value) {
     .replace(/^-+|-+$/g, '')
     .slice(0, 80);
   return normalized || 'default';
+}
+
+function createGuestWorkspaceKey() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return `guest-${crypto.randomUUID().slice(0, 8)}`;
+  }
+  return `guest-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 async function readSse(response, onEvent) {
@@ -506,6 +547,10 @@ function App() {
     }
   }
 
+  function loadExampleIdea(nextIdea) {
+    setIdea(nextIdea);
+  }
+
   async function selectRun(runId) {
     setBusyAction(`run-${runId}`);
     setError('');
@@ -712,21 +757,42 @@ function App() {
                         className="min-h-36 resize-y"
                       />
                     </Field>
-                  <Button onClick={runAgent} disabled={busyAction === 'agent'}>
-                    {busyAction === 'agent' ? (
-                      <Loader2 className="spin" data-icon="inline-start" />
-                    ) : (
-                      <Play data-icon="inline-start" />
-                    )}
-                    Generate PRD and tasks
-                  </Button>
-                  <p className="nova-provider-line">
-                    {busyAction === 'agent' && streamStatus
-                      ? `Live stream: ${streamStatus}`
-                      : freeModels[0]
-                      ? `Best ${freeModels[0].source || 'free'} model: ${freeModels[0].name || freeModels[0].id}`
-                      : `Provider chain: ${provider.ai}`}
-                  </p>
+                    <div className="nova-example-grid" aria-label="Example product ideas">
+                      {exampleIdeas.map((example) => (
+                        <Button
+                          key={example.label}
+                          type="button"
+                          variant={idea === example.idea ? 'secondary' : 'outline'}
+                          size="sm"
+                          onClick={() => loadExampleIdea(example.idea)}
+                        >
+                          {example.label}
+                        </Button>
+                      ))}
+                    </div>
+                    <div className="nova-run-artifacts">
+                      {runArtifacts.map((artifact) => (
+                        <div key={artifact.label}>
+                          <strong>{artifact.label}</strong>
+                          <span>{artifact.detail}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <Button onClick={runAgent} disabled={busyAction === 'agent' || !idea.trim()}>
+                      {busyAction === 'agent' ? (
+                        <Loader2 className="spin" data-icon="inline-start" />
+                      ) : (
+                        <Play data-icon="inline-start" />
+                      )}
+                      Generate PRD and tasks
+                    </Button>
+                    <p className="nova-provider-line">
+                      {busyAction === 'agent' && streamStatus
+                        ? `Live stream: ${streamStatus}`
+                        : freeModels[0]
+                        ? `Best ${freeModels[0].source || 'free'} model: ${freeModels[0].name || freeModels[0].id}`
+                        : `Provider chain: ${provider.ai}`}
+                    </p>
                   </FieldGroup>
                 </CardContent>
               </Card>
@@ -808,6 +874,7 @@ function App() {
                 integrationVerification={integrationVerification}
                 visiblePayload={visiblePayload}
                 exportPackage={activeExportPackage}
+                approvedCount={counts.approved}
                 packageFormat={packageFormat}
                 setPackageFormat={setPackageFormat}
                 canExport={canExport}
@@ -1536,6 +1603,7 @@ function ExportPanel({
   integrationVerification,
   visiblePayload,
   exportPackage,
+  approvedCount,
   packageFormat,
   setPackageFormat,
   canExport,
@@ -1548,6 +1616,8 @@ function ExportPanel({
 }) {
   const targetKey = exportTarget.toLowerCase();
   const targetIntegration = integrationVerification?.providers?.[targetKey];
+  const hasApprovedTasks = approvedCount > 0;
+  const isPackaging = busyAction === 'package';
   const previewText =
     packageFormat === 'markdown' && exportPackage
       ? exportPackage.markdown
@@ -1626,13 +1696,21 @@ function ExportPanel({
         </div>
         <div className="nova-package-meta">
           <span>
-            {exportPackage
+            {isPackaging
+              ? 'Preparing approved tasks for issue export.'
+              : exportPackage
               ? `${exportPackage.summary.pendingExportCount ?? exportPackage.summary.approvedCount} issues ready for export`
-              : canExport
+              : hasApprovedTasks
                 ? 'Approved tasks can be packaged before API export.'
                 : 'Approve at least one task to unlock issue export.'}
           </span>
-          {exportPackage ? <Badge variant="secondary">{exportPackage.status}</Badge> : <Badge variant="outline">draft</Badge>}
+          {isPackaging ? (
+            <Badge variant="outline">preparing</Badge>
+          ) : exportPackage ? (
+            <Badge variant="secondary">{exportPackage.status}</Badge>
+          ) : (
+            <Badge variant="outline">draft</Badge>
+          )}
         </div>
         <ToggleGroup
           type="single"
@@ -1651,7 +1729,7 @@ function ExportPanel({
           <pre>{previewText}</pre>
         </ScrollArea>
         <div className="nova-export-actions">
-          <Button variant="outline" disabled={!canExport || busyAction === 'package'} onClick={prepareExportPackage}>
+          <Button variant="outline" disabled={!hasApprovedTasks || busyAction === 'package'} onClick={prepareExportPackage}>
             {busyAction === 'package' ? (
               <Loader2 className="spin" data-icon="inline-start" />
             ) : (
@@ -1661,7 +1739,7 @@ function ExportPanel({
           </Button>
           <Button
             variant="secondary"
-            disabled={!exportPackage}
+            disabled={!exportPackage || isPackaging}
             onClick={() => downloadExportPackage(packageFormat === 'markdown' ? 'markdown' : 'json')}
           >
             <Download data-icon="inline-start" />

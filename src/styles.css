@@ -397,6 +397,47 @@ button:disabled {
   gap: 12px;
 }
 
+.nova-example-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.nova-example-grid [data-slot="button"] {
+  min-width: 0;
+  justify-content: center;
+}
+
+.nova-run-artifacts {
+  display: grid;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.nova-run-artifacts > div {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
+  padding: 7px 0;
+  border-top: 1px solid var(--border);
+}
+
+.nova-run-artifacts > div:last-child {
+  border-bottom: 1px solid var(--border);
+}
+
+.nova-run-artifacts strong {
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.nova-run-artifacts span {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
 .nova-provider-line {
   margin: 0;
   color: var(--muted-foreground);
@@ -1167,6 +1208,10 @@ button:disabled {
 
   .nova-demo-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .nova-example-grid {
+    grid-template-columns: 1fr;
   }
 
   .nova-workspace,
