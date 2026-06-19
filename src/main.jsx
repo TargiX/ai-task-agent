@@ -975,13 +975,24 @@ function WorkflowOverview({ steps }) {
   return (
     <section className="nova-flow-strip" aria-label="Run flow">
       {steps.map((step) => (
-        <div key={step.id} className="nova-flow-step" data-state={step.state}>
-          <span>{step.label}</span>
-          <strong>{step.value}</strong>
-        </div>
+        <Card key={step.id} className="nova-flow-step" data-state={step.state} size="sm">
+          <CardHeader>
+            <CardDescription>{step.label}</CardDescription>
+            <CardTitle>{step.value}</CardTitle>
+            <CardAction>
+              <WorkflowStateBadge state={step.state} />
+            </CardAction>
+          </CardHeader>
+        </Card>
       ))}
     </section>
   );
+}
+
+function WorkflowStateBadge({ state }) {
+  const variant = state === 'active' ? 'default' : state === 'done' ? 'secondary' : 'outline';
+  const label = state === 'done' ? 'Done' : state === 'active' ? 'Now' : 'Next';
+  return <Badge variant={variant}>{label}</Badge>;
 }
 
 function buildWorkflowSteps({ idea, prd, counts, exports, busyAction }) {

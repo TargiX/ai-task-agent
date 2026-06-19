@@ -291,45 +291,33 @@ button:disabled {
 
 .nova-flow-step {
   min-width: 0;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-left-width: 3px;
-  border-radius: 10px;
-  background: color-mix(in oklch, var(--background), var(--muted) 22%);
 }
 
-.nova-flow-step[data-state="done"] {
-  border-left-color: #0f9f7a;
+.nova-flow-step [data-slot="card-header"] {
+  gap: 5px;
 }
 
-.nova-flow-step[data-state="active"] {
-  border-left-color: #2457d6;
-  background: color-mix(in oklch, var(--accent), #2457d6 5%);
-}
-
-.nova-flow-step[data-state="waiting"] {
-  border-left-color: var(--border);
-}
-
-.nova-flow-step span,
-.nova-flow-step strong {
-  display: block;
+.nova-flow-step [data-slot="card-description"],
+.nova-flow-step [data-slot="card-title"] {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.nova-flow-step span {
-  color: var(--muted-foreground);
+.nova-flow-step [data-slot="card-description"] {
   font-size: 11px;
   font-weight: 650;
   text-transform: uppercase;
 }
 
-.nova-flow-step strong {
-  margin-top: 4px;
+.nova-flow-step [data-slot="card-title"] {
   font-size: 13px;
   font-weight: 650;
+  line-height: 1.25;
+}
+
+.nova-flow-step [data-slot="card-action"] {
+  align-self: center;
 }
 
 .nova-workspace {
