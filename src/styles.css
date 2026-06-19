@@ -159,12 +159,13 @@ button:disabled {
 .nova-shell {
   display: grid;
   grid-template-columns: 248px minmax(0, 1fr);
-  width: min(1780px, calc(100vw - 48px));
+  width: min(1780px, calc(100vw - 37px));
   min-height: calc(100vh - 48px);
   margin: 24px auto;
   overflow: hidden;
   border-radius: 36px;
   background: #ffffff;
+  margin: 10px;
 }
 
 .nova-sidebar {
@@ -1425,7 +1426,6 @@ button:disabled {
   .nova-ticket-card h3 {
     font-size: 14px;
   }
-
 }
 
 @theme inline {
