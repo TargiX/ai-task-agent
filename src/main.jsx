@@ -728,7 +728,8 @@ function App() {
           <RuntimeStrip workspace={workspace.workspace?.label || workspaceKey} provider={provider} />
           <WorkflowOverview steps={workflowSteps} />
 
-          <div className="nova-workspace" id="workspace">
+          <div className="nova-scroll-region">
+            <div className="nova-workspace" id="workspace">
             <section className="nova-left">
               <Card className="nova-idea-card" size="sm">
                 <CardHeader>
@@ -878,19 +879,20 @@ function App() {
                 exports={exports}
               />
             </aside>
-          </div>
+            </div>
 
-          <DiagnosticsPanel
-            provider={provider}
-            counts={counts}
-            preflight={preflight}
-            verification={setupVerification}
-            busyAction={busyAction}
-            verifySetup={verifySetup}
-            report={demoReport}
-            runDemoReport={runDemoReport}
-            capabilities={preflight?.capabilities}
-          />
+            <DiagnosticsPanel
+              provider={provider}
+              counts={counts}
+              preflight={preflight}
+              verification={setupVerification}
+              busyAction={busyAction}
+              verifySetup={verifySetup}
+              report={demoReport}
+              runDemoReport={runDemoReport}
+              capabilities={preflight?.capabilities}
+            />
+          </div>
         </section>
       </main>
     </TooltipProvider>
@@ -954,12 +956,10 @@ function RunHistoryPanel({ runs, activeRunId, provider, storageDetail, busyActio
 
 function MetricCard({ label, value, text = false }) {
   return (
-    <Card className="nova-metric" size="sm">
-      <CardContent>
-        <span>{label}</span>
-        <strong className={text ? 'text' : ''}>{value}</strong>
-      </CardContent>
-    </Card>
+    <div className="nova-metric">
+      <span className="nova-metric-label">{label}</span>
+      <strong className={text ? 'nova-metric-value text' : 'nova-metric-value'}>{value}</strong>
+    </div>
   );
 }
 

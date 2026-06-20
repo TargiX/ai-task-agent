@@ -90,7 +90,8 @@
 body {
   margin: 0;
   min-width: 320px;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background: var(--bg);
 }
 
@@ -213,9 +214,9 @@ button:disabled {
 .nova-shell {
   display: grid;
   grid-template-columns: 248px minmax(0, 1fr);
-  width: min(1780px, calc(100vw - 37px));
-  min-height: calc(100vh - 48px);
-  margin: 24px auto;
+  width: calc(100vw - 20px);
+  height: calc(100vh - 20px);
+  min-height: 0;
   overflow: hidden;
   border-radius: 36px;
   background: #ffffff;
@@ -226,7 +227,8 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 18px;
-  min-height: 100%;
+  min-height: 0;
+  overflow-y: auto;
   padding: 22px 16px;
   background: #f8f8f8;
 }
@@ -288,8 +290,28 @@ button:disabled {
 }
 
 .nova-main {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
-  padding: 24px 28px 30px;
+  min-height: 0;
+  overflow: hidden;
+  padding: 24px 28px 0;
+}
+
+.nova-main > :not(.nova-scroll-region) {
+  flex-shrink: 0;
+}
+
+.nova-scroll-region {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 14px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 2px 30px 0;
 }
 
 .nova-topbar {
@@ -374,43 +396,48 @@ button:disabled {
 
 .nova-status-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(140px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
   margin: 14px 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.nova-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+  padding: 14px 18px;
 }
 
 .nova-metric:not(:last-child) {
-  border-right: 1px solid #cccccc6e;
+  border-right: 1px solid var(--border);
 }
 
-.nova-metric [data-slot="card"] {
-  border-radius: 0 !important;
-  background: transparent !important;
-}
-
-.nova-metric [data-slot="card-content"] {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.nova-metric span {
+.nova-metric-label {
   color: var(--muted-foreground);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   white-space: nowrap;
 }
 
-.nova-metric strong {
-  font-size: 20px;
+.nova-metric-value {
+  font-size: 24px;
   line-height: 1;
+  font-weight: 650;
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
 }
 
-.nova-metric strong.text {
+.nova-metric-value.text {
   font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 
@@ -944,7 +971,7 @@ button:disabled {
 }
 
 .nova-diagnostics {
-  margin-top: 14px;
+  margin-top: 0;
 }
 
 .nova-diagnostic-tabs {
@@ -1372,10 +1399,16 @@ button:disabled {
 }
 
 @media (max-width: 860px) {
+  body {
+    height: 100dvh;
+  }
+
   .nova-shell {
-    display: block;
+    display: flex;
+    flex-direction: column;
     width: 100%;
-    min-height: 100vh;
+    height: 100dvh;
+    min-height: 0;
     margin: 0;
     border-radius: 0;
   }
@@ -1385,9 +1418,11 @@ button:disabled {
     z-index: 10;
     flex-direction: row;
     align-items: center;
+    flex-shrink: 0;
     min-height: 60px;
     padding: 10px;
     overflow-x: auto;
+    overflow-y: hidden;
     border-right: 0;
     border-bottom: 0;
   }
@@ -1402,7 +1437,9 @@ button:disabled {
   }
 
   .nova-main {
-    padding: 16px 10px 22px;
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 16px 10px 0;
   }
 
   .nova-topbar {
@@ -1437,6 +1474,18 @@ button:disabled {
 
   .nova-status-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .nova-metric:not(:last-child) {
+    border-right: 0;
+  }
+
+  .nova-metric:nth-child(odd) {
+    border-right: 1px solid var(--border);
+  }
+
+  .nova-metric:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--border);
   }
 
   .nova-flow-strip {
