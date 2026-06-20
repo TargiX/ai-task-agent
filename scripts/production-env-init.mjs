@@ -113,7 +113,10 @@ function productionReadiness(values) {
   }
 
   return {
-    workspaceAccess: has(values, 'WORKSPACE_ACCESS_TOKEN') ? 'guarded' : 'demo-open',
+    workspaceAccess:
+      has(values, 'WORKSPACE_ACCESS_TOKEN') || has(values, 'TEAM_WORKSPACES') || has(values, 'WORKSPACE_TEAM_TOKENS')
+        ? 'guarded'
+        : 'demo-open',
     durableStorage: hasCloudflareRuntime ? 'cloudflare-d1' : hasCloudflareCreate ? 'cloudflare-d1-create' : hasSupabase ? 'supabase' : 'missing',
     liveLlm: hasProductionLangGraph(values)
       ? 'langgraph'

@@ -24,6 +24,8 @@ const values = {
     'GITHUB_TOKEN',
     'GITHUB_REPOSITORY',
     'WORKSPACE_ACCESS_TOKEN',
+    'TEAM_WORKSPACES',
+    'WORKSPACE_TEAM_TOKENS',
     'VERCEL_AUTOMATION_BYPASS_SECRET',
   ]),
 };
@@ -58,7 +60,7 @@ const blockers = [
   ...missing.issueExport.map((name) => ({ group: 'issue-export', name })),
 ];
 const acceptedSecretSets = {
-  workspaceAccess: [['WORKSPACE_ACCESS_TOKEN']],
+  workspaceAccess: [['WORKSPACE_ACCESS_TOKEN'], ['TEAM_WORKSPACES'], ['WORKSPACE_TEAM_TOKENS']],
   durableStorage: [
     ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_D1_DATABASE_ID', 'CLOUDFLARE_API_TOKEN'],
     ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_API_TOKEN'],
@@ -252,6 +254,7 @@ function parseJsonObject(output) {
 function formatMissingNext(items) {
   const groups = new Set(items.map((item) => item.group));
   const parts = [];
+  if (groups.has('workspace-access')) parts.push('workspace access token or team workspace token map');
   if (groups.has('durable-storage')) parts.push('durable storage credentials');
   if (groups.has('live-llm')) parts.push('one live LLM credential set');
   if (groups.has('issue-export')) parts.push('one issue export credential set');

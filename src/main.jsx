@@ -150,6 +150,7 @@ function emptyWorkspace() {
       storage: 'json',
       linear: 'not-configured',
       github: 'not-configured',
+      access: 'demo-open',
     },
   };
 }
@@ -254,6 +255,7 @@ function App() {
   const [packageFormat, setPackageFormat] = useState('json');
   const [setupVerification, setSetupVerification] = useState(null);
   const [integrationVerification, setIntegrationVerification] = useState(null);
+  const [teamConfig, setTeamConfig] = useState(null);
   const [demoReport, setDemoReport] = useState(null);
   const [streamStatus, setStreamStatus] = useState('');
   const [busyAction, setBusyAction] = useState('loading');
@@ -261,6 +263,8 @@ function App() {
   const [workspaceKey, setWorkspaceKey] = useState(currentWorkspaceKey());
   const [workspaceDraft, setWorkspaceDraft] = useState(currentWorkspaceKey());
   const [accessTokenDraft, setAccessTokenDraft] = useState(currentAccessToken());
+  const [privateWorkspaceDraft, setPrivateWorkspaceDraft] = useState('');
+  const [privateTokenDraft, setPrivateTokenDraft] = useState('');
 
   const { prd, tasks, logs, exports, provider, graph, runHistory = [] } = workspace;
 
@@ -269,6 +273,7 @@ function App() {
     refreshFreeModels();
     refreshPreflight();
     refreshIntegrationVerification();
+    refreshTeamConfig();
   }, []);
 
   const counts = useMemo(() => {
@@ -388,6 +393,47 @@ function App() {
       setIntegrationVerification(await api('/api/integrations/verify'));
     } catch {
       setIntegrationVerification(null);
+    }
+  }
+
+  async function refreshTeamConfig() {
+    try {
+      setTeamConfig(await api('/api/team/workspaces'));
+    } catch {
+      setTeamConfig(null);
+    }
+  }
+
+  async function openPrivateWorkspace() {
+    const workspaceId = normalizeClientWorkspaceKey(privateWorkspaceDraft || workspaceDraft);
+    const token = privateTokenDraft.trim();
+    if (!workspaceId || !token) {
+      setError('Enter a private workspace key and team token.');
+      return;
+    }
+    setBusyAction('team-session');
+    setError('');
+    try {
+      const session = await api('/api/team/session', {
+        method: 'POST',
+        body: JSON.stringify({ workspaceId, token }),
+      });
+      localStorage.setItem(workspaceStorageKey, session.workspace.id);
+      localStorage.setItem(accessTokenStorageKey, token);
+      setWorkspaceKey(session.workspace.id);
+      setWorkspaceDraft(session.workspace.id);
+      setAccessTokenDraft(token);
+      setPrivateWorkspaceDraft('');
+      setPrivateTokenDraft('');
+      setWorkspace(emptyWorkspace());
+      setSelectedTaskId(null);
+      setExportPackage(null);
+      await refreshWorkspace();
+      await refreshIntegrationVerification();
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setBusyAction('');
     }
   }
 
@@ -756,8 +802,14 @@ function App() {
               provider={provider}
               workspaceLabel={workspace.workspace?.label || workspaceKey}
               freeModels={freeModels}
+              teamConfig={teamConfig}
+              privateWorkspaceDraft={privateWorkspaceDraft}
+              privateTokenDraft={privateTokenDraft}
+              setPrivateWorkspaceDraft={setPrivateWorkspaceDraft}
+              setPrivateTokenDraft={setPrivateTokenDraft}
               busyAction={busyAction}
               runAgent={runAgent}
+              openPrivateWorkspace={openPrivateWorkspace}
               setIdea={setIdea}
             />
           )}
@@ -988,9 +1040,23 @@ function RunHistoryPanel({ runs, activeRunId, provider, storageDetail, busyActio
   );
 }
 
-function Launchpad({ provider, workspaceLabel, freeModels, busyAction, runAgent, setIdea }) {
+function Launchpad({
+  provider,
+  workspaceLabel,
+  freeModels,
+  teamConfig,
+  privateWorkspaceDraft,
+  privateTokenDraft,
+  setPrivateWorkspaceDraft,
+  setPrivateTokenDraft,
+  busyAction,
+  runAgent,
+  openPrivateWorkspace,
+  setIdea,
+}) {
   const primaryModel = freeModels[0]?.name || freeModels[0]?.id || provider.ai;
   const exportReady = provider.linear === 'configured' || provider.github === 'configured';
+  const teamOptions = teamConfig?.teams || [];
   return (
     <section className="nova-launchpad" aria-label="How AI Task Agent works">
       <div className="nova-launchpad-copy">
@@ -1040,6 +1106,63 @@ function Launchpad({ provider, workspaceLabel, freeModels, busyAction, runAgent,
         <ToneBadge tone={provider.access === 'guarded' ? 'success' : 'warning'}>
           {provider.access === 'guarded' ? 'Private mode' : 'Public demo'}
         </ToneBadge>
+      </div>
+      <div className="nova-private-access">
+        <div className="nova-private-copy">
+          <strong>Open a private team workspace</strong>
+          <p>
+            Use a team workspace key and access token to review shared runs and unlock real issue creation
+            when Linear or GitHub is configured.
+          </p>
+        </div>
+        <FieldGroup className="nova-private-form">
+          <Field>
+            <FieldLabel htmlFor="private-workspace-key">Workspace key</FieldLabel>
+            <Input
+              id="private-workspace-key"
+              value={privateWorkspaceDraft}
+              onChange={(event) => setPrivateWorkspaceDraft(event.target.value)}
+              placeholder={teamOptions[0]?.id || 'team-workspace'}
+              aria-label="Private workspace key"
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="private-workspace-token">Team token</FieldLabel>
+            <Input
+              id="private-workspace-token"
+              type="password"
+              value={privateTokenDraft}
+              onChange={(event) => setPrivateTokenDraft(event.target.value)}
+              placeholder="Paste token"
+              aria-label="Private workspace token"
+            />
+          </Field>
+          <Button onClick={openPrivateWorkspace} disabled={busyAction === 'team-session'}>
+            {busyAction === 'team-session' ? (
+              <Loader2 className="spin" data-icon="inline-start" />
+            ) : (
+              <Check data-icon="inline-start" />
+            )}
+            Open private workspace
+          </Button>
+        </FieldGroup>
+        {teamOptions.length ? (
+          <div className="nova-team-list" aria-label="Configured private workspaces">
+            {teamOptions.map((team) => (
+              <Button
+                key={team.id}
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setPrivateWorkspaceDraft(team.id)}
+              >
+                {team.label}
+              </Button>
+            ))}
+          </div>
+        ) : (
+          <p className="nova-private-note">Private teams are configured by deployment env vars.</p>
+        )}
       </div>
     </section>
   );

@@ -641,6 +641,66 @@ button:disabled {
   line-height: 1.2;
 }
 
+.nova-private-access {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(220px, 0.9fr) minmax(380px, 1.6fr);
+  gap: 10px;
+  align-items: end;
+  padding: 12px;
+  border-radius: 22px;
+  background: #ffffff;
+}
+
+.nova-private-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.nova-private-copy strong {
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.nova-private-copy p,
+.nova-private-note {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.nova-private-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+  min-width: 0;
+}
+
+.nova-private-form [data-slot="field"] {
+  gap: 6px;
+  min-width: 0;
+}
+
+.nova-private-form [data-slot="field-label"] {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.nova-private-form [data-slot="input"] {
+  background: var(--surface-soft) !important;
+}
+
+.nova-team-list {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .nova-workspace {
   display: grid;
   grid-template-columns: 330px minmax(0, 1fr) 330px;
@@ -1556,6 +1616,15 @@ button:disabled {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .nova-private-access,
+  .nova-private-form {
+    grid-template-columns: 1fr;
+  }
+
+  .nova-team-list {
+    grid-column: auto;
+  }
+
   .nova-workspace {
     grid-template-columns: 310px minmax(0, 1fr);
   }
@@ -1687,6 +1756,10 @@ button:disabled {
   }
 
   .nova-launchpad-actions [data-slot="button"] {
+    width: 100%;
+  }
+
+  .nova-private-form [data-slot="button"] {
     width: 100%;
   }
 

@@ -80,6 +80,7 @@ Team workspace isolation:
 - The React UI stores the workspace key locally and sends it with all API and SSE requests.
 - This isolates runs, PRDs, tasks, approvals, exports, and run history per workspace.
 - Set `WORKSPACE_ACCESS_TOKEN` to require `x-ai-task-agent-access-token` or `Authorization: Bearer <token>` for workspace data routes. `GET /api/health` and `GET /api/preflight` remain public readiness endpoints.
+- For pilot teams on a public deployment, set `TEAM_WORKSPACES` to JSON such as `{"targix":{"label":"TargiX Product","token":"wat_team_secret"}}` or set `WORKSPACE_TEAM_TOKENS=targix:wat_team_secret:TargiX Product`. Requests for that workspace require the matching token, while guest workspaces stay open for the public demo.
 - Public demo workspaces are package-only for external systems. Real Linear/GitHub issue creation requires provider credentials plus guarded access mode, unless `ALLOW_PUBLIC_REAL_ISSUE_EXPORT=1` is intentionally set for a controlled test environment.
 
 - `GET /api/workspace` returns PRD, tasks, graph trace, logs, exports, and provider status.
@@ -87,6 +88,8 @@ Team workspace isolation:
 - `POST /api/runs/select` accepts `{ "runId": "..." }` and resumes that run as the active workspace.
 - `GET /api/health` returns a deployment-safe health/readiness summary.
 - `GET /api/preflight` returns production readiness checks without exposing secrets.
+- `GET /api/team/workspaces` returns public metadata for configured private team workspaces without exposing tokens.
+- `POST /api/team/session` accepts `{ "workspaceId": "...", "token": "..." }` and validates private team access.
 - `GET /api/setup/verify` runs non-mutating runtime checks for API wiring, storage read/list, issue package generation, planner provider, and export provider readiness.
 - `GET /api/integrations/verify` runs read-only GitHub repository and Linear team checks when credentials are configured, without creating issues.
 - `GET /api/demo/report` runs an isolated in-memory demo of idea -> PRD -> tasks -> approval -> issue package -> trace without changing the active workspace.

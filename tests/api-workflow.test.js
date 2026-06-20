@@ -608,6 +608,106 @@ test('guarded workspace token unlocks real issue creation without public overrid
   }
 });
 
+test('team workspace token unlocks a private workspace on a public deployment', async () => {
+  await isolateJsonStorage();
+  process.env.TEAM_WORKSPACES = JSON.stringify({
+    targix: { label: 'TargiX Product', token: 'team-token' },
+  });
+  process.env.GITHUB_TOKEN = 'github-token';
+  process.env.GITHUB_REPOSITORY = 'owner/repo';
+  const workspaceHeaders = { 'x-ai-task-agent-workspace': 'targix' };
+  const privateHeaders = { ...workspaceHeaders, 'x-ai-task-agent-access-token': 'team-token' };
+  const previousFetch = global.fetch;
+  const calls = [];
+  global.fetch = async (url, options = {}) => {
+    calls.push({ url, options, body: options.body ? JSON.parse(options.body) : null });
+    return {
+      ok: true,
+      status: 201,
+      json: async () => ({
+        id: calls.length,
+        number: calls.length,
+        html_url: `https://github.com/owner/repo/issues/${calls.length}`,
+      }),
+    };
+  };
+
+  try {
+    const teams = await handleApiRequest({ method: 'GET', pathname: '/api/team/workspaces' });
+    assert.equal(teams.status, 200);
+    assert.equal(teams.body.access, 'team-guarded');
+    assert.deepEqual(teams.body.teams, [{ id: 'targix', label: 'TargiX Product' }]);
+    assert.equal(JSON.stringify(teams.body).includes('team-token'), false);
+
+    const blockedWorkspace = await handleApiRequest({
+      method: 'GET',
+      pathname: '/api/workspace',
+      headers: workspaceHeaders,
+    });
+    assert.equal(blockedWorkspace.status, 401);
+    assert.match(blockedWorkspace.body.error, /team workspace access token/i);
+
+    const badSession = await handleApiRequest({
+      method: 'POST',
+      pathname: '/api/team/session',
+      body: { workspaceId: 'targix', token: 'wrong-token' },
+    });
+    assert.equal(badSession.status, 401);
+
+    const session = await handleApiRequest({
+      method: 'POST',
+      pathname: '/api/team/session',
+      body: { workspaceId: 'targix', token: 'team-token' },
+    });
+    assert.equal(session.status, 200);
+    assert.equal(session.body.workspace.id, 'targix');
+    assert.equal(session.body.workspace.label, 'TargiX Product');
+    assert.equal(session.body.access, 'guarded');
+
+    const run = await handleApiRequest({
+      method: 'POST',
+      pathname: '/api/agent/run',
+      headers: privateHeaders,
+      body: { idea },
+    });
+    assert.equal(run.status, 200);
+    assert.equal(run.body.provider.access, 'guarded');
+    assert.equal(run.body.workspace.team.label, 'TargiX Product');
+
+    await handleApiRequest({
+      method: 'PATCH',
+      pathname: '/api/tasks/batch',
+      headers: privateHeaders,
+      body: {
+        taskIds: run.body.tasks.slice(0, 2).map((task) => task.id),
+        status: 'approved',
+        reviewNote: 'Team approved for GitHub creation.',
+      },
+    });
+
+    const issuePackage = await handleApiRequest({
+      method: 'GET',
+      pathname: '/api/export-package',
+      headers: privateHeaders,
+      query: { target: 'GitHub' },
+    });
+    assert.equal(issuePackage.body.mode.mode, 'real-issue-creation');
+
+    const exported = await handleApiRequest({
+      method: 'POST',
+      pathname: '/api/export',
+      headers: privateHeaders,
+      body: { target: 'GitHub' },
+    });
+    assert.equal(exported.status, 200);
+    assert.equal(exported.body.provider.access, 'guarded');
+    assert.equal(exported.body.exports[0].status, 'created');
+    assert.equal(calls.length, 2);
+  } finally {
+    global.fetch = previousFetch;
+  }
+});
+
 test('expected API state errors return structured 4xx responses', async () => {
   await isolateJsonStorage();
 
@@ -671,6 +771,8 @@ async function isolateJsonStorage() {
   delete process.env.GITHUB_TOKEN;
   delete process.env.GITHUB_REPOSITORY;
   delete process.env.WORKSPACE_ACCESS_TOKEN;
+  delete process.env.TEAM_WORKSPACES;
+  delete process.env.WORKSPACE_TEAM_TOKENS;
   delete process.env.ALLOW_PUBLIC_REAL_ISSUE_EXPORT;
 
   const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'ai-task-agent-test-'));
