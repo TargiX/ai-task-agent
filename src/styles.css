@@ -493,6 +493,98 @@ button:disabled {
   font-weight: 500;
 }
 
+.nova-product-guide {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.75fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.nova-guide-card,
+.nova-next-card {
+  min-width: 0;
+}
+
+.nova-guide-card [data-slot="card-header"],
+.nova-next-card [data-slot="card-header"] {
+  align-items: start;
+  gap: 12px;
+}
+
+.nova-guide-card [data-slot="card-description"],
+.nova-next-card [data-slot="card-description"] {
+  max-width: 620px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.nova-guide-flow {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.nova-guide-step {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+  min-height: 116px;
+  padding: 11px;
+  border-radius: 20px;
+  background: #ffffff;
+}
+
+.nova-guide-step[data-state="active"] {
+  background: var(--selected);
+}
+
+.nova-guide-step span {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.nova-guide-step strong {
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.nova-guide-step p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.nova-next-action {
+  display: grid;
+  gap: 12px;
+}
+
+.nova-next-action strong {
+  display: block;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.nova-next-action p {
+  margin: 4px 0 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.nova-next-action [data-slot="button"] {
+  justify-self: start;
+}
+
 .nova-flow-strip {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -679,6 +771,10 @@ button:disabled {
   min-width: 0;
 }
 
+.nova-private-form.compact {
+  grid-template-columns: 1fr;
+}
+
 .nova-private-form [data-slot="field"] {
   gap: 6px;
   min-width: 0;
@@ -699,6 +795,15 @@ button:disabled {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.nova-access-card [data-slot="card-content"] {
+  display: grid;
+  gap: 10px;
+}
+
+.nova-access-card .nova-team-list {
+  grid-column: auto;
 }
 
 .nova-workspace {
@@ -1102,9 +1207,11 @@ button:disabled {
 }
 
 #workspace,
+#how-it-works,
 #runs,
 #task-db,
 #exports,
+#private-access,
 #diagnostics {
   scroll-margin-top: 14px;
 }
@@ -1612,6 +1719,14 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
+  .nova-product-guide {
+    grid-template-columns: 1fr;
+  }
+
+  .nova-guide-flow {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .nova-launchpad-mode {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1740,6 +1855,14 @@ button:disabled {
 
   .nova-flow-step:last-child {
     grid-column: 1 / -1;
+  }
+
+  .nova-guide-flow {
+    grid-template-columns: 1fr;
+  }
+
+  .nova-guide-step {
+    min-height: 0;
   }
 
   .nova-launchpad {
