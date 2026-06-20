@@ -80,7 +80,7 @@ Team workspace isolation:
 - The React UI stores the workspace key locally and sends it with all API and SSE requests.
 - This isolates runs, PRDs, tasks, approvals, exports, and run history per workspace.
 - Set `WORKSPACE_ACCESS_TOKEN` to require `x-ai-task-agent-access-token` or `Authorization: Bearer <token>` for workspace data routes. `GET /api/health` and `GET /api/preflight` remain public readiness endpoints.
-- For pilot teams on a public deployment, set `TEAM_WORKSPACES` to JSON such as `{"targix":{"label":"TargiX Product","token":"wat_team_secret"}}` or set `WORKSPACE_TEAM_TOKENS=targix:wat_team_secret:TargiX Product`. Requests for that workspace require the matching token, while guest workspaces stay open for the public demo.
+- For pilot teams on a public deployment, set `TEAM_WORKSPACES` to JSON such as `{"targix":{"label":"TargiX Product","token":"wat_team_secret"}}` or set `WORKSPACE_TEAM_TOKENS=targix:wat_team_secret:TargiX Product`. Requests for that workspace require the matching token, while guest workspaces stay open for the public demo. The same token also unlocks isolated sub-workspaces prefixed with the team key, such as `targix-smoke-20260620`, so private QA runs do not overwrite the main team workspace.
 - Public demo workspaces are package-only for external systems. Real Linear/GitHub issue creation requires provider credentials plus guarded access mode, unless `ALLOW_PUBLIC_REAL_ISSUE_EXPORT=1` is intentionally set for a controlled test environment.
 
 - `GET /api/workspace` returns PRD, tasks, graph trace, logs, exports, and provider status.

@@ -615,7 +615,8 @@ test('team workspace token unlocks a private workspace on a public deployment', 
   });
   process.env.GITHUB_TOKEN = 'github-token';
   process.env.GITHUB_REPOSITORY = 'owner/repo';
-  const workspaceHeaders = { 'x-ai-task-agent-workspace': 'targix' };
+  const teamWorkspaceId = 'targix-smoke-1';
+  const workspaceHeaders = { 'x-ai-task-agent-workspace': teamWorkspaceId };
   const privateHeaders = { ...workspaceHeaders, 'x-ai-task-agent-access-token': 'team-token' };
   const previousFetch = global.fetch;
   const calls = [];
@@ -657,12 +658,13 @@ test('team workspace token unlocks a private workspace on a public deployment', 
     const session = await handleApiRequest({
       method: 'POST',
       pathname: '/api/team/session',
-      body: { workspaceId: 'targix', token: 'team-token' },
+      body: { workspaceId: teamWorkspaceId, token: 'team-token' },
     });
     assert.equal(session.status, 200);
-    assert.equal(session.body.workspace.id, 'targix');
+    assert.equal(session.body.workspace.id, teamWorkspaceId);
     assert.equal(session.body.workspace.label, 'TargiX Product');
     assert.equal(session.body.access, 'guarded');
+    assert.equal(session.body.team.id, 'targix');
 
     const run = await handleApiRequest({
       method: 'POST',
@@ -672,6 +674,8 @@ test('team workspace token unlocks a private workspace on a public deployment', 
     });
     assert.equal(run.status, 200);
     assert.equal(run.body.provider.access, 'guarded');
+    assert.equal(run.body.workspace.id, teamWorkspaceId);
+    assert.equal(run.body.workspace.team.id, 'targix');
     assert.equal(run.body.workspace.team.label, 'TargiX Product');
 
     await handleApiRequest({

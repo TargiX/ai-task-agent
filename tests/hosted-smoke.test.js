@@ -28,6 +28,23 @@ test('hosted smoke enforces durable storage when required', async () => {
   assert.match(result.stderr, /production storage must be durable/);
 });
 
+test('hosted smoke verifies private team workspace mode when configured', async () => {
+  const fixturePath = await writeFixture();
+  const result = runHostedSmoke(fixturePath, {
+    REQUIRE_DURABLE: '0',
+    REQUIRE_TEAM_WORKSPACE: '1',
+    TEAM_WORKSPACE_ID: 'targix-smoke-1',
+    TEAM_WORKSPACE_TOKEN: 'team-token',
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.teamWorkspace.ok, true);
+  assert.equal(report.teamWorkspace.workspace, 'targix-smoke-1');
+  assert.equal(report.teamWorkspace.providerAccess, 'guarded');
+  assert.equal(report.teamWorkspace.mode, 'real-issue-creation');
+});
+
 function runHostedSmoke(fixturePath, env = {}) {
   return spawnSync(process.execPath, [scriptPath], {
     cwd: process.cwd(),
@@ -114,6 +131,61 @@ function fixturePayload() {
       models: [],
       sources: [],
       provider,
+    },
+    'GET /api/team/workspaces': {
+      configured: true,
+      access: 'team-guarded',
+      teams: [{ id: 'targix', label: 'TargiX Product' }],
+    },
+    'POST /api/team/session': {
+      ok: true,
+      workspace: { id: 'targix-smoke-1', label: 'TargiX Product' },
+      access: 'guarded',
+      global: false,
+      team: { id: 'targix', label: 'TargiX Product' },
+    },
+    'DELETE /api/workspace': {
+      ok: true,
+      workspace: { id: 'targix-smoke-1', label: 'TargiX Product' },
+      provider,
+      tasks: [],
+      runHistory: [],
+    },
+    'POST /api/agent/run': {
+      runId: 'run-team-smoke',
+      provider: { ...provider, access: 'guarded' },
+      workspace: {
+        id: 'targix-smoke-1',
+        label: 'TargiX Product',
+        access: 'guarded',
+        team: { id: 'targix', label: 'TargiX Product' },
+      },
+      prd: { title: 'Private Team Workspace MVP' },
+      tasks: Array.from({ length: 5 }, (_, index) => ({
+        id: `TASK-${index + 1}`,
+        title: `Task ${index + 1}`,
+        status: 'pending',
+      })),
+      runHistory: [{ runId: 'run-team-smoke' }],
+    },
+    'PATCH /api/tasks/batch': {
+      provider: { ...provider, access: 'guarded' },
+      tasks: [
+        { id: 'TASK-1', status: 'approved' },
+        { id: 'TASK-2', status: 'approved' },
+        { id: 'TASK-3', status: 'pending' },
+        { id: 'TASK-4', status: 'pending' },
+        { id: 'TASK-5', status: 'pending' },
+      ],
+    },
+    'GET /api/export-package?target=GitHub': {
+      status: 'ready',
+      mode: {
+        mode: 'real-issue-creation',
+        canCreateIssues: true,
+      },
+      payload: [{ title: 'Task 1' }],
+      markdown: '# GitHub issue package',
     },
   };
 }

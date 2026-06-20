@@ -10,6 +10,10 @@ const requireLiveLlm = process.env.REQUIRE_LIVE_LLM === '1';
 const requireIssueExport = process.env.REQUIRE_ISSUE_EXPORT === '1';
 const requireAccessGuard = process.env.REQUIRE_ACCESS_GUARD === '1';
 const requireVercelRuntime = process.env.REQUIRE_VERCEL_RUNTIME === '1' || isVercelUrl(baseUrl);
+const requireTeamWorkspace = process.env.REQUIRE_TEAM_WORKSPACE === '1';
+const teamWorkspaceId = process.env.TEAM_WORKSPACE_ID?.trim() || '';
+const teamWorkspaceToken = process.env.TEAM_WORKSPACE_TOKEN?.trim() || '';
+const shouldSmokeTeamWorkspace = requireTeamWorkspace || Boolean(teamWorkspaceId && teamWorkspaceToken);
 
 const health = await getJson('/api/health');
 assert(health.ok === true, 'health.ok must be true');
@@ -61,6 +65,11 @@ if (requireAccessGuard) {
   assert(preflight.provider?.access === 'guarded', 'workspace access guard must be configured');
 }
 
+let teamWorkspace = null;
+if (shouldSmokeTeamWorkspace) {
+  teamWorkspace = await smokeTeamWorkspace();
+}
+
 console.log(
   JSON.stringify(
     {
@@ -85,6 +94,7 @@ console.log(
         count: freeModels.models?.length || 0,
         sources: freeModels.sources || [],
       },
+      teamWorkspace,
     },
     null,
     2,
@@ -98,15 +108,101 @@ async function getJson(resourcePath) {
   throw new Error(`Unsupported HOSTED_SMOKE_TRANSPORT=${transport}`);
 }
 
-async function fetchJson(resourcePath) {
+async function smokeTeamWorkspace() {
+  assert(teamWorkspaceId, 'TEAM_WORKSPACE_ID is required for private team workspace smoke');
+  assert(teamWorkspaceToken, 'TEAM_WORKSPACE_TOKEN is required for private team workspace smoke');
+  assert(
+    transport === 'fetch' || transport === 'fixture',
+    'private team workspace smoke requires HOSTED_SMOKE_TRANSPORT=fetch or fixture',
+  );
+
+  const teams = await smokeJson('/api/team/workspaces');
+  assert(teams.configured === true, 'team workspace metadata must report configured=true');
+  assert(
+    teams.teams?.some((team) => team.id === teamWorkspaceId || teamWorkspaceId.startsWith(`${team.id}-`)),
+    `team workspace metadata must include ${teamWorkspaceId} or a matching base team prefix`,
+  );
+
+  const session = await smokeJson('/api/team/session', {
+    method: 'POST',
+    body: { workspaceId: teamWorkspaceId, token: teamWorkspaceToken },
+  });
+  assert(session.ok === true, 'team workspace session must be ok');
+  assert(session.access === 'guarded', 'team workspace session must return guarded access');
+  assert(session.workspace?.id === teamWorkspaceId, `team workspace session id must be ${teamWorkspaceId}`);
+
+  await smokeJson('/api/workspace', { method: 'DELETE', team: true });
+  const run = await smokeJson('/api/agent/run', {
+    method: 'POST',
+    team: true,
+    body: {
+      idea:
+        process.env.TEAM_SMOKE_IDEA ||
+        'A private team planning workspace for SaaS operators that converts approved product requests into engineering issues.',
+    },
+  });
+  assert(run.provider?.access === 'guarded', 'private run must return guarded provider access');
+  assert(run.workspace?.team?.label, 'private run must include team metadata');
+  assert(run.tasks?.length === 5, 'private team smoke must create five tasks');
+
+  const approved = await smokeJson('/api/tasks/batch', {
+    method: 'PATCH',
+    team: true,
+    body: {
+      taskIds: run.tasks.slice(0, 2).map((task) => task.id),
+      status: 'approved',
+      reviewNote: 'Hosted team smoke approved these tasks for package verification.',
+    },
+  });
+  assert(
+    approved.tasks?.filter((task) => task.status === 'approved').length >= 2,
+    'private team smoke must approve tasks',
+  );
+
+  const target = process.env.TEAM_EXPORT_TARGET || 'GitHub';
+  const issuePackage = await smokeJson(`/api/export-package?target=${encodeURIComponent(target)}`, { team: true });
+  assert(issuePackage.status === 'ready', 'private team issue package must be ready');
+  assert(
+    issuePackage.mode?.mode === 'real-issue-creation',
+    `private team issue package must be real-issue-creation, got ${issuePackage.mode?.mode}`,
+  );
+
+  return {
+    ok: true,
+    workspace: teamWorkspaceId,
+    team: session.team || null,
+    providerAccess: run.provider.access,
+    tasks: run.tasks.length,
+    approved: approved.tasks.filter((task) => task.status === 'approved').length,
+    issuePackage: issuePackage.status,
+    mode: issuePackage.mode.mode,
+  };
+}
+
+async function smokeJson(resourcePath, options = {}) {
+  if (transport === 'fixture') return fixtureJson(`${options.method || 'GET'} ${resourcePath}`);
+  return fetchJson(resourcePath, options);
+}
+
+async function fetchJson(resourcePath, options = {}) {
   const response = await fetch(`${baseUrl}${resourcePath}`, {
+    method: options.method || 'GET',
+    body: options.body ? JSON.stringify(options.body) : undefined,
     headers: {
+      'content-type': 'application/json',
       ...(process.env.VERCEL_AUTOMATION_BYPASS_SECRET
         ? { 'x-vercel-protection-bypass': process.env.VERCEL_AUTOMATION_BYPASS_SECRET }
         : {}),
       ...(process.env.WORKSPACE_ACCESS_TOKEN
         ? { 'x-ai-task-agent-access-token': process.env.WORKSPACE_ACCESS_TOKEN }
         : {}),
+      ...(options.team
+        ? {
+            'x-ai-task-agent-workspace': teamWorkspaceId,
+            'x-ai-task-agent-access-token': teamWorkspaceToken,
+          }
+        : {}),
+      ...(options.headers || {}),
     },
   });
   if (!response.ok) {
