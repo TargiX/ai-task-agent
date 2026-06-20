@@ -531,6 +531,83 @@ test('workspace access token guards data routes when configured', async () => {
   assert.match(events[0].message, /access token/i);
 });
 
+test('guarded workspace token unlocks real issue creation without public override', async () => {
+  await isolateJsonStorage();
+  process.env.WORKSPACE_ACCESS_TOKEN = 'secret-token';
+  process.env.GITHUB_TOKEN = 'github-token';
+  process.env.GITHUB_REPOSITORY = 'owner/repo';
+  const headers = { authorization: 'Bearer secret-token' };
+  const previousFetch = global.fetch;
+  const calls = [];
+  global.fetch = async (url, options = {}) => {
+    calls.push({ url, options, body: options.body ? JSON.parse(options.body) : null });
+    return {
+      ok: true,
+      status: 201,
+      json: async () => ({
+        id: calls.length,
+        number: calls.length,
+        html_url: `https://github.com/owner/repo/issues/${calls.length}`,
+      }),
+    };
+  };
+
+  try {
+    const blockedRun = await handleApiRequest({
+      method: 'POST',
+      pathname: '/api/agent/run',
+      body: { idea },
+    });
+    assert.equal(blockedRun.status, 401);
+
+    const run = await handleApiRequest({
+      method: 'POST',
+      pathname: '/api/agent/run',
+      headers,
+      body: { idea },
+    });
+    assert.equal(run.status, 200);
+
+    const approval = await handleApiRequest({
+      method: 'PATCH',
+      pathname: '/api/tasks/batch',
+      headers,
+      body: {
+        taskIds: run.body.tasks.slice(0, 2).map((task) => task.id),
+        status: 'approved',
+        reviewNote: 'Ready for private GitHub creation.',
+      },
+    });
+    assert.equal(approval.status, 200);
+
+    const issuePackage = await handleApiRequest({
+      method: 'GET',
+      pathname: '/api/export-package',
+      headers,
+      query: { target: 'GitHub' },
+    });
+    assert.equal(issuePackage.status, 200);
+    assert.equal(issuePackage.body.mode.mode, 'real-issue-creation');
+    assert.equal(issuePackage.body.mode.canCreateIssues, true);
+    assert.match(issuePackage.body.mode.reason, /Private guarded mode/i);
+
+    const exported = await handleApiRequest({
+      method: 'POST',
+      pathname: '/api/export',
+      headers,
+      body: { target: 'GitHub' },
+    });
+    assert.equal(exported.status, 200);
+    assert.equal(exported.body.exports[0].status, 'created');
+    assert.equal(exported.body.exports[0].mode.mode, 'real-issue-creation');
+    assert.equal(exported.body.exports[0].delivery.length, 2);
+    assert.equal(calls.length, 2);
+    assert.equal(calls[0].url, 'https://api.github.com/repos/owner/repo/issues');
+  } finally {
+    global.fetch = previousFetch;
+  }
+});
+
 test('expected API state errors return structured 4xx responses', async () => {
   await isolateJsonStorage();
 

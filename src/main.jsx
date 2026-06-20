@@ -89,6 +89,29 @@ const runArtifacts = [
   },
 ];
 
+const launchpadSteps = [
+  {
+    label: 'Idea',
+    title: 'Write the product shape',
+    detail: 'Start from a SaaS idea, customer workflow, internal tool, or feature request backlog.',
+  },
+  {
+    label: 'Agent',
+    title: 'Generate PRD and tasks',
+    detail: 'The planner creates a PRD, five normalized tasks, and a traceable tool-call log.',
+  },
+  {
+    label: 'Review',
+    title: 'Approve the queue',
+    detail: 'Edit owner, priority, estimate, and acceptance criteria before anything leaves the workspace.',
+  },
+  {
+    label: 'Export',
+    title: 'Package or create issues',
+    detail: 'Public demo prepares safe payloads; guarded private mode can create Linear or GitHub issues.',
+  },
+];
+
 const navItems = [
   { label: 'Workspace', icon: LayoutDashboard, target: '#workspace', active: true },
   { label: 'Runs', icon: History, target: '#runs' },
@@ -268,6 +291,7 @@ function App() {
   const canExport = counts.approved > 0 && !['agent', 'export', 'package'].includes(busyAction);
   const activeExportPackage =
     exportPackage?.target === exportTarget && exportPackage?.runId === workspace.runId ? exportPackage : null;
+  const showLaunchpad = !prd && tasks.length === 0;
   const workflowSteps = useMemo(
     () =>
       buildWorkflowSteps({
@@ -727,6 +751,16 @@ function App() {
           </section>
           <RuntimeStrip workspace={workspace.workspace?.label || workspaceKey} provider={provider} />
           <WorkflowOverview steps={workflowSteps} />
+          {showLaunchpad && (
+            <Launchpad
+              provider={provider}
+              workspaceLabel={workspace.workspace?.label || workspaceKey}
+              freeModels={freeModels}
+              busyAction={busyAction}
+              runAgent={runAgent}
+              setIdea={setIdea}
+            />
+          )}
 
           <div className="nova-scroll-region">
             <div className="nova-workspace" id="workspace">
@@ -951,6 +985,63 @@ function RunHistoryPanel({ runs, activeRunId, provider, storageDetail, busyActio
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function Launchpad({ provider, workspaceLabel, freeModels, busyAction, runAgent, setIdea }) {
+  const primaryModel = freeModels[0]?.name || freeModels[0]?.id || provider.ai;
+  const exportReady = provider.linear === 'configured' || provider.github === 'configured';
+  return (
+    <section className="nova-launchpad" aria-label="How AI Task Agent works">
+      <div className="nova-launchpad-copy">
+        <div className="nova-launchpad-heading">
+          <h2>Turn a product idea into an approved issue package.</h2>
+          <p>
+            AI Task Agent creates a PRD, breaks it into reviewable tasks, waits for human approval,
+            then prepares Linear or GitHub issue payloads for the current workspace.
+          </p>
+        </div>
+        <div className="nova-launchpad-actions">
+          <Button onClick={runAgent} disabled={busyAction === 'agent'}>
+            {busyAction === 'agent' ? (
+              <Loader2 className="spin" data-icon="inline-start" />
+            ) : (
+              <Play data-icon="inline-start" />
+            )}
+            Generate from current idea
+          </Button>
+          <Button variant="secondary" onClick={() => setIdea(exampleIdeas[1].idea)}>
+            Load billing ops example
+          </Button>
+        </div>
+      </div>
+      <div className="nova-launchpad-steps">
+        {launchpadSteps.map((step) => (
+          <div key={step.label} className="nova-launchpad-step">
+            <ToneBadge tone="brand">{step.label}</ToneBadge>
+            <strong>{step.title}</strong>
+            <p>{step.detail}</p>
+          </div>
+        ))}
+      </div>
+      <div className="nova-launchpad-mode">
+        <div>
+          <span>Workspace</span>
+          <strong>{workspaceLabel}</strong>
+        </div>
+        <div>
+          <span>AI planner</span>
+          <strong>{primaryModel}</strong>
+        </div>
+        <div>
+          <span>Issue path</span>
+          <strong>{exportReady ? 'connector configured' : 'package-only demo'}</strong>
+        </div>
+        <ToneBadge tone={provider.access === 'guarded' ? 'success' : 'warning'}>
+          {provider.access === 'guarded' ? 'Private mode' : 'Public demo'}
+        </ToneBadge>
+      </div>
+    </section>
   );
 }
 
@@ -1671,6 +1762,9 @@ function ExportPanel({
     packageFormat === 'markdown' && exportPackage
       ? exportPackage.markdown
       : JSON.stringify(exportPackage?.payload || visiblePayload.slice(0, 2), null, 2);
+  const exportMode = exportPackage?.mode || clientExportMode(exportTarget, provider);
+  const exportModeTone = exportMode.canCreateIssues ? 'success' : exportMode.connector === 'configured' ? 'warning' : 'neutral';
+  const exportActionLabel = exportMode.canCreateIssues ? `Create ${exportTarget} issues` : 'Save export package';
 
   return (
     <Card className="nova-export" size="sm" id="exports">
@@ -1699,11 +1793,15 @@ function ExportPanel({
         <p className="nova-provider-line">
           {exportTarget} connector: <strong>{provider[exportTarget.toLowerCase()]}</strong>
         </p>
-        {provider.access !== 'guarded' && provider[exportTarget.toLowerCase()] === 'configured' ? (
-          <p className="nova-provider-line">
-            Public demo mode prepares export packages; private access is required for real issue creation.
-          </p>
-        ) : null}
+        <div className="nova-export-mode">
+          <div>
+            <strong>{exportMode.canCreateIssues ? 'Real issue creation enabled' : 'Package-only export'}</strong>
+            <p>{exportMode.reason}</p>
+          </div>
+          <ToneBadge tone={exportModeTone}>
+            {exportMode.canCreateIssues ? 'private ready' : exportMode.connector === 'configured' ? 'guard required' : 'payload safe'}
+          </ToneBadge>
+        </div>
         <div className="nova-connector-check">
           <div className="nova-verification-head">
             <div>
@@ -1801,7 +1899,7 @@ function ExportPanel({
           ) : (
             <Send data-icon="inline-start" />
           )}
-          Export approved
+          {exportActionLabel}
         </Button>
         <Separator />
         <div className="nova-export-history">
@@ -1956,6 +2054,24 @@ function PriorityBadge({ priority }) {
           ? 'success'
           : 'neutral';
   return <ToneBadge tone={tone}>{priority || 'Priority'}</ToneBadge>;
+}
+
+function clientExportMode(target, provider = {}) {
+  const targetKey = String(target || '').toLowerCase();
+  const connector = provider[targetKey] || 'not-configured';
+  const canCreateIssues = connector === 'configured' && provider.access === 'guarded';
+  return {
+    mode: canCreateIssues ? 'real-issue-creation' : 'package-only',
+    canCreateIssues,
+    connector,
+    access: provider.access || 'demo-open',
+    reason:
+      connector !== 'configured'
+        ? `${target} connector is not configured; the app can still prepare a safe issue package.`
+        : canCreateIssues
+          ? `Private guarded mode is active, so approved tasks can create real ${target} issues.`
+          : `Public demo mode prepares ${target} packages only; enable guarded private access for real issue creation.`,
+  };
 }
 
 function buildPreviewPayload(target, prd, tasks) {

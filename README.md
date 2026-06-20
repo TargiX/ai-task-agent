@@ -80,6 +80,7 @@ Team workspace isolation:
 - The React UI stores the workspace key locally and sends it with all API and SSE requests.
 - This isolates runs, PRDs, tasks, approvals, exports, and run history per workspace.
 - Set `WORKSPACE_ACCESS_TOKEN` to require `x-ai-task-agent-access-token` or `Authorization: Bearer <token>` for workspace data routes. `GET /api/health` and `GET /api/preflight` remain public readiness endpoints.
+- Public demo workspaces are package-only for external systems. Real Linear/GitHub issue creation requires provider credentials plus guarded access mode, unless `ALLOW_PUBLIC_REAL_ISSUE_EXPORT=1` is intentionally set for a controlled test environment.
 
 - `GET /api/workspace` returns PRD, tasks, graph trace, logs, exports, and provider status.
 - `GET /api/runs` returns persisted run summaries for resume/history.
@@ -94,6 +95,7 @@ Team workspace isolation:
 - `POST /api/agent/stream` accepts `{ "idea": "..." }` and streams graph/log/complete SSE events.
 - `PATCH /api/tasks/:id` edits task fields and approval status.
 - `PATCH /api/tasks/batch` updates approval status for multiple tasks.
+- `GET /api/export-package?target=Linear|GitHub` prepares approved tasks as JSON and Markdown, including a `mode` contract: `package-only` or `real-issue-creation`.
 - `POST /api/export` accepts `{ "target": "Linear" | "GitHub" }`.
 - `DELETE /api/workspace` resets the JSON DB.
 
