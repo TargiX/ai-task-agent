@@ -51,7 +51,6 @@ import {
   RefreshCw,
   Send,
   Settings,
-  ShieldCheck,
   Sparkles,
   Workflow,
   X,
@@ -91,7 +90,7 @@ const runArtifacts = [
   },
 ];
 
-const launchpadSteps = [
+const productSteps = [
   {
     label: 'Idea',
     title: 'Write the product shape',
@@ -116,7 +115,6 @@ const launchpadSteps = [
 
 const navItems = [
   { label: 'Workspace', icon: LayoutDashboard, target: '#workspace', active: true },
-  { label: 'How it works', icon: ShieldCheck, target: '#how-it-works' },
   { label: 'Runs', icon: History, target: '#runs' },
   { label: 'Review', icon: ListChecks, target: '#task-db' },
   { label: 'Exports', icon: Send, target: '#exports' },
@@ -134,6 +132,7 @@ const skillStack = [
 ];
 const workspaceStorageKey = 'ai-task-agent.workspaceId';
 const accessTokenStorageKey = 'ai-task-agent.accessToken';
+const enteredAppStorageKey = 'ai-task-agent.enteredApp';
 
 function emptyWorkspace() {
   return {
@@ -247,6 +246,93 @@ function parseSseBlock(block) {
 }
 
 function App() {
+  const [enteredApp, setEnteredApp] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.location.hash === '#app' || localStorage.getItem(enteredAppStorageKey) === '1';
+  });
+
+  function enterDemo() {
+    localStorage.setItem(enteredAppStorageKey, '1');
+    if (window.location.hash !== '#app') window.history.replaceState(null, '', '#app');
+    setEnteredApp(true);
+  }
+
+  if (!enteredApp) return <LandingPage onEnter={enterDemo} />;
+  return <WorkspaceApp />;
+}
+
+function LandingPage({ onEnter }) {
+  return (
+    <main className="nova-landing-shell">
+      <header className="nova-landing-nav">
+        <div className="nova-brand">
+          <span className="nova-brand-mark">
+            <Bot />
+          </span>
+          <div>
+            <strong>AI Task Agent</strong>
+            <span>Product ops copilot</span>
+          </div>
+        </div>
+        <Button onClick={onEnter}>
+          <Play data-icon="inline-start" />
+          Open demo workspace
+        </Button>
+      </header>
+
+      <section className="nova-landing-hero">
+        <div className="nova-landing-copy">
+          <h1>Turn a SaaS product idea into an approved engineering issue package.</h1>
+          <p>
+            AI Task Agent creates a PRD, breaks it into reviewable tasks, waits for human approval,
+            then prepares Linear or GitHub issue payloads. Public demo mode is safe; private team mode can create real issues.
+          </p>
+          <div className="nova-landing-actions">
+            <Button onClick={onEnter}>
+              <Play data-icon="inline-start" />
+              Try the live demo
+            </Button>
+            <Button variant="secondary" onClick={onEnter}>
+              Use example idea
+            </Button>
+          </div>
+        </div>
+        <div className="nova-landing-preview" aria-label="Product workflow preview">
+          <div className="nova-landing-preview-head">
+            <span>Live workflow</span>
+            <ToneBadge tone="success">OpenRouter + D1</ToneBadge>
+          </div>
+          <div className="nova-landing-flow">
+            {productSteps.map((step, index) => (
+              <div key={step.label} className="nova-landing-step">
+                <span>{String(index + 1).padStart(2, '0')}</span>
+                <strong>{step.title}</strong>
+                <p>{step.detail}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="nova-landing-proof">
+        <div>
+          <strong>Guest workspaces</strong>
+          <p>Each visitor gets an isolated guest workspace, so old runs never bleed into a new demo.</p>
+        </div>
+        <div>
+          <strong>Human approval gate</strong>
+          <p>Tasks must be edited, approved, or rejected before export is unlocked.</p>
+        </div>
+        <div>
+          <strong>Private issue creation</strong>
+          <p>Team tokens unlock guarded workspaces for real Linear/GitHub issue creation.</p>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function WorkspaceApp() {
   const [idea, setIdea] = useState(sampleIdea);
   const [workspace, setWorkspace] = useState(emptyWorkspace);
   const [exportTarget, setExportTarget] = useState('Linear');
@@ -299,7 +385,6 @@ function App() {
   const canExport = counts.approved > 0 && !['agent', 'export', 'package'].includes(busyAction);
   const activeExportPackage =
     exportPackage?.target === exportTarget && exportPackage?.runId === workspace.runId ? exportPackage : null;
-  const showLaunchpad = !prd && tasks.length === 0;
   const workflowSteps = useMemo(
     () =>
       buildWorkflowSteps({
@@ -310,18 +395,6 @@ function App() {
         busyAction,
       }),
     [idea, prd, counts, exports, busyAction]
-  );
-  const productGuide = useMemo(
-    () =>
-      buildProductGuide({
-        idea,
-        prd,
-        counts,
-        provider,
-        activeExportPackage,
-        exportTarget,
-      }),
-    [idea, prd, counts, provider, activeExportPackage, exportTarget]
   );
 
   useEffect(() => {
@@ -628,10 +701,6 @@ function App() {
     setIdea(nextIdea);
   }
 
-  function scrollTo(selector) {
-    document.querySelector(selector)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-
   async function selectRun(runId) {
     setBusyAction(`run-${runId}`);
     setError('');
@@ -815,31 +884,7 @@ function App() {
             <MetricCard label="Runs" value={runHistory.length} />
           </section>
           <RuntimeStrip workspace={workspace.workspace?.label || workspaceKey} provider={provider} />
-          <ProductGuide
-            guide={productGuide}
-            provider={provider}
-            busyAction={busyAction}
-            runAgent={runAgent}
-            prepareExportPackage={prepareExportPackage}
-            scrollTo={scrollTo}
-          />
           <WorkflowOverview steps={workflowSteps} />
-          {showLaunchpad && (
-            <Launchpad
-              provider={provider}
-              workspaceLabel={workspace.workspace?.label || workspaceKey}
-              freeModels={freeModels}
-              teamConfig={teamConfig}
-              privateWorkspaceDraft={privateWorkspaceDraft}
-              privateTokenDraft={privateTokenDraft}
-              setPrivateWorkspaceDraft={setPrivateWorkspaceDraft}
-              setPrivateTokenDraft={setPrivateTokenDraft}
-              busyAction={busyAction}
-              runAgent={runAgent}
-              openPrivateWorkspace={openPrivateWorkspace}
-              setIdea={setIdea}
-            />
-          )}
 
           <div className="nova-scroll-region">
             <div className="nova-workspace" id="workspace">
@@ -911,28 +956,26 @@ function App() {
                 busyAction={busyAction}
                 selectRun={selectRun}
               />
-              {!showLaunchpad && (
-                <Card className="nova-access-card" size="sm" id="private-access">
-                  <CardHeader>
-                    <CardTitle>Private workspace</CardTitle>
-                    <CardAction>
-                      <KeyRound className="nova-card-icon" />
-                    </CardAction>
-                  </CardHeader>
-                  <CardContent>
-                    <PrivateAccessPanel
-                      teamConfig={teamConfig}
-                      privateWorkspaceDraft={privateWorkspaceDraft}
-                      privateTokenDraft={privateTokenDraft}
-                      setPrivateWorkspaceDraft={setPrivateWorkspaceDraft}
-                      setPrivateTokenDraft={setPrivateTokenDraft}
-                      busyAction={busyAction}
-                      openPrivateWorkspace={openPrivateWorkspace}
-                      compact
-                    />
-                  </CardContent>
-                </Card>
-              )}
+              <Card className="nova-access-card" size="sm" id="private-access">
+                <CardHeader>
+                  <CardTitle>Private workspace</CardTitle>
+                  <CardAction>
+                    <KeyRound className="nova-card-icon" />
+                  </CardAction>
+                </CardHeader>
+                <CardContent>
+                  <PrivateAccessPanel
+                    teamConfig={teamConfig}
+                    privateWorkspaceDraft={privateWorkspaceDraft}
+                    privateTokenDraft={privateTokenDraft}
+                    setPrivateWorkspaceDraft={setPrivateWorkspaceDraft}
+                    setPrivateTokenDraft={setPrivateTokenDraft}
+                    busyAction={busyAction}
+                    openPrivateWorkspace={openPrivateWorkspace}
+                    compact
+                  />
+                </CardContent>
+              </Card>
             </section>
 
             <section className="nova-center">
@@ -1089,88 +1132,6 @@ function RunHistoryPanel({ runs, activeRunId, provider, storageDetail, busyActio
   );
 }
 
-function Launchpad({
-  provider,
-  workspaceLabel,
-  freeModels,
-  teamConfig,
-  privateWorkspaceDraft,
-  privateTokenDraft,
-  setPrivateWorkspaceDraft,
-  setPrivateTokenDraft,
-  busyAction,
-  runAgent,
-  openPrivateWorkspace,
-  setIdea,
-}) {
-  const primaryModel = freeModels[0]?.name || freeModels[0]?.id || provider.ai;
-  const exportReady = provider.linear === 'configured' || provider.github === 'configured';
-  const teamOptions = teamConfig?.teams || [];
-  return (
-    <section className="nova-launchpad" aria-label="How AI Task Agent works">
-      <div className="nova-launchpad-copy">
-        <div className="nova-launchpad-heading">
-          <h2>Turn a product idea into an approved issue package.</h2>
-          <p>
-            AI Task Agent creates a PRD, breaks it into reviewable tasks, waits for human approval,
-            then prepares Linear or GitHub issue payloads for the current workspace.
-          </p>
-        </div>
-        <div className="nova-launchpad-actions">
-          <Button onClick={runAgent} disabled={busyAction === 'agent'}>
-            {busyAction === 'agent' ? (
-              <Loader2 className="spin" data-icon="inline-start" />
-            ) : (
-              <Play data-icon="inline-start" />
-            )}
-            Generate from current idea
-          </Button>
-          <Button variant="secondary" onClick={() => setIdea(exampleIdeas[1].idea)}>
-            Load billing ops example
-          </Button>
-        </div>
-      </div>
-      <div className="nova-launchpad-steps">
-        {launchpadSteps.map((step) => (
-          <div key={step.label} className="nova-launchpad-step">
-            <ToneBadge tone="brand">{step.label}</ToneBadge>
-            <strong>{step.title}</strong>
-            <p>{step.detail}</p>
-          </div>
-        ))}
-      </div>
-      <div className="nova-launchpad-mode">
-        <div>
-          <span>Workspace</span>
-          <strong>{workspaceLabel}</strong>
-        </div>
-        <div>
-          <span>AI planner</span>
-          <strong>{primaryModel}</strong>
-        </div>
-        <div>
-          <span>Issue path</span>
-          <strong>{exportReady ? 'connector configured' : 'package-only demo'}</strong>
-        </div>
-        <ToneBadge tone={provider.access === 'guarded' ? 'success' : 'warning'}>
-          {provider.access === 'guarded' ? 'Private mode' : 'Public demo'}
-        </ToneBadge>
-      </div>
-      <div className="nova-private-access">
-        <PrivateAccessPanel
-          teamConfig={teamConfig}
-          privateWorkspaceDraft={privateWorkspaceDraft}
-          privateTokenDraft={privateTokenDraft}
-          setPrivateWorkspaceDraft={setPrivateWorkspaceDraft}
-          setPrivateTokenDraft={setPrivateTokenDraft}
-          busyAction={busyAction}
-          openPrivateWorkspace={openPrivateWorkspace}
-        />
-      </div>
-    </section>
-  );
-}
-
 function PrivateAccessPanel({
   teamConfig,
   privateWorkspaceDraft,
@@ -1243,81 +1204,6 @@ function PrivateAccessPanel({
         <p className="nova-private-note">Private teams are configured by deployment env vars.</p>
       )}
     </>
-  );
-}
-
-function ProductGuide({ guide, provider, busyAction, runAgent, prepareExportPackage, scrollTo }) {
-  const action = guide.action;
-  const actionHandler =
-    action.kind === 'run'
-      ? runAgent
-      : action.kind === 'package'
-        ? prepareExportPackage
-        : () => scrollTo(action.target || '#workspace');
-  const actionBusy =
-    (action.kind === 'run' && busyAction === 'agent') ||
-    (action.kind === 'package' && busyAction === 'package');
-
-  return (
-    <section className="nova-product-guide" id="how-it-works" aria-label="Product workflow guide">
-      <Card className="nova-guide-card" size="sm">
-        <CardHeader>
-          <div>
-            <CardTitle>How it works</CardTitle>
-            <CardDescription>
-              A controlled path from idea to PRD, persisted tasks, human review, and issue export.
-            </CardDescription>
-          </div>
-          <CardAction>
-            <ToneBadge tone={provider.access === 'guarded' ? 'success' : 'warning'}>
-              {provider.access === 'guarded' ? 'Private capable' : 'Safe public demo'}
-            </ToneBadge>
-          </CardAction>
-        </CardHeader>
-        <CardContent>
-          <div className="nova-guide-flow">
-            {guide.steps.map((step, index) => (
-              <div key={step.label} className="nova-guide-step" data-state={step.state}>
-                <span>{String(index + 1).padStart(2, '0')}</span>
-                <strong>{step.label}</strong>
-                <p>{step.detail}</p>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-      <Card className="nova-next-card" size="sm">
-        <CardHeader>
-          <div>
-            <CardTitle>Next best action</CardTitle>
-            <CardDescription>{guide.modeDetail}</CardDescription>
-          </div>
-          <CardAction>
-            <WorkflowStateBadge state={action.state} />
-          </CardAction>
-        </CardHeader>
-        <CardContent>
-          <div className="nova-next-action">
-            <div>
-              <strong>{action.title}</strong>
-              <p>{action.detail}</p>
-            </div>
-            <Button onClick={actionHandler} disabled={actionBusy || action.disabled}>
-              {actionBusy ? (
-                <Loader2 className="spin" data-icon="inline-start" />
-              ) : action.kind === 'private' ? (
-                <KeyRound data-icon="inline-start" />
-              ) : action.kind === 'package' ? (
-                <FileText data-icon="inline-start" />
-              ) : (
-                <Play data-icon="inline-start" />
-              )}
-              {action.label}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </section>
   );
 }
 
@@ -1400,112 +1286,6 @@ function buildWorkflowSteps({ idea, prd, counts, exports, busyAction }) {
       state: hasExport ? 'done' : counts.approved ? 'active' : 'waiting',
     },
   ];
-}
-
-function buildProductGuide({ idea, prd, counts, provider, activeExportPackage, exportTarget }) {
-  const hasIdea = Boolean(idea.trim());
-  const hasTasks = counts.total > 0;
-  const hasApproved = counts.approved > 0;
-  const hasPending = counts.pending > 0;
-  const canCreateIssues =
-    provider.access === 'guarded' && provider[String(exportTarget || '').toLowerCase()] === 'configured';
-  const steps = [
-    {
-      label: 'Idea',
-      detail: 'A user writes the product concept or loads a realistic SaaS example.',
-      state: hasIdea ? 'done' : 'active',
-    },
-    {
-      label: 'PRD',
-      detail: 'The planner turns the idea into audience, problem, goals, scope, and validation notes.',
-      state: prd ? 'done' : hasIdea ? 'active' : 'waiting',
-    },
-    {
-      label: 'Task DB',
-      detail: 'Five tasks are persisted with owner, priority, estimate, and acceptance criteria.',
-      state: hasTasks ? 'done' : prd ? 'active' : 'waiting',
-    },
-    {
-      label: 'Human gate',
-      detail: 'A reviewer edits, approves, or rejects tasks before external systems are touched.',
-      state: hasTasks && !hasPending ? 'done' : hasTasks ? 'active' : 'waiting',
-    },
-    {
-      label: 'Export',
-      detail: 'Public demo prepares payloads; private guarded workspaces can create real issues.',
-      state: activeExportPackage || canCreateIssues ? 'active' : hasApproved ? 'active' : 'waiting',
-    },
-  ];
-
-  let action = {
-    kind: 'run',
-    state: 'active',
-    title: 'Generate PRD and tasks',
-    detail: 'Start the agent to create a traceable PRD, task queue, and run history for this workspace.',
-    label: 'Run agent',
-    disabled: !hasIdea,
-    target: '#workspace',
-  };
-
-  if (!hasIdea) {
-    action = {
-      ...action,
-      title: 'Write or load an idea',
-      detail: 'Use the idea field or one of the examples before starting the agent run.',
-      label: 'Go to idea',
-      kind: 'scroll',
-      target: '#workspace',
-      disabled: false,
-    };
-  } else if (hasTasks && hasPending) {
-    action = {
-      kind: 'scroll',
-      state: 'active',
-      title: 'Review the generated queue',
-      detail: `${counts.pending} task${counts.pending === 1 ? '' : 's'} still need approval or rejection before export is meaningful.`,
-      label: 'Review tasks',
-      target: '#task-db',
-      disabled: false,
-    };
-  } else if (hasApproved && !activeExportPackage) {
-    action = {
-      kind: 'package',
-      state: 'active',
-      title: `Prepare the ${exportTarget} package`,
-      detail: 'Build the exact issue payload from approved tasks so it can be inspected, downloaded, or sent in private mode.',
-      label: 'Prepare package',
-      disabled: false,
-    };
-  } else if (activeExportPackage && !canCreateIssues) {
-    action = {
-      kind: 'private',
-      state: 'active',
-      title: 'Keep public export safe or open private mode',
-      detail: 'The package is ready for demo/download. Use a private workspace token when you want the app to create real issues.',
-      label: 'Open private mode',
-      target: '#private-access',
-      disabled: false,
-    };
-  } else if (activeExportPackage && canCreateIssues) {
-    action = {
-      kind: 'scroll',
-      state: 'active',
-      title: `Create real ${exportTarget} issues`,
-      detail: 'Private access and connector credentials are both active, so the export panel can create issues from approved tasks.',
-      label: 'Go to export',
-      target: '#exports',
-      disabled: false,
-    };
-  }
-
-  return {
-    steps,
-    action,
-    modeDetail:
-      provider.access === 'guarded'
-        ? 'This workspace can run the private guarded path when connectors are configured.'
-        : 'This workspace is public demo mode, so external issue creation stays package-only.',
-  };
 }
 
 function RuntimeStrip({ workspace, provider }) {
