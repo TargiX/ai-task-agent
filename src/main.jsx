@@ -90,26 +90,56 @@ const runArtifacts = [
   },
 ];
 
-const productSteps = [
+const landingProgress = [
+  { label: 'Idea captured', state: 'Done', tone: 'success', icon: CheckCircle2 },
+  { label: 'PRD generated', state: 'Done', tone: 'success', icon: FileText },
+  { label: 'Tasks planned', state: 'In progress', tone: 'info', icon: ListChecks },
+  { label: 'Review', state: 'Waiting', tone: 'warning', icon: CircleDot },
+  { label: 'Export', state: 'Pending', tone: 'muted', icon: Send },
+];
+
+const landingTasks = [
   {
-    label: 'Idea',
-    title: 'Write the product shape',
-    detail: 'Start from a SaaS idea, customer workflow, internal tool, or feature request backlog.',
+    title: 'Build feedback request inbox',
+    detail: 'Capture customer requests with source, segment, and duplicate signals.',
+    owner: 'Product Team',
+    priority: 'High',
+    estimate: '5 pts',
+    status: 'Pending',
   },
   {
-    label: 'Agent',
-    title: 'Generate PRD and tasks',
-    detail: 'The planner creates a PRD, five normalized tasks, and a traceable tool-call log.',
+    title: 'Generate PRD and task breakdown',
+    detail: 'Create problem statement, MVP scope, acceptance criteria, and dependencies.',
+    owner: 'Backend Team',
+    priority: 'Medium',
+    estimate: '3 pts',
+    status: 'Review',
   },
   {
-    label: 'Review',
-    title: 'Approve the queue',
-    detail: 'Edit owner, priority, estimate, and acceptance criteria before anything leaves the workspace.',
+    title: 'Prepare Linear/GitHub package',
+    detail: 'Export only approved tasks with owner, labels, estimates, and task bodies.',
+    owner: 'Platform Team',
+    priority: 'Low',
+    estimate: '2 pts',
+    status: 'Ready',
+  },
+];
+
+const landingProofs = [
+  {
+    icon: Database,
+    title: 'Durable demo state',
+    detail: 'Guest workspaces are isolated and persisted through Cloudflare D1.',
   },
   {
-    label: 'Export',
-    title: 'Package or create issues',
-    detail: 'Public demo prepares safe payloads; guarded private mode can create Linear or GitHub issues.',
+    icon: ListChecks,
+    title: 'Human approval gate',
+    detail: 'Edit, approve, or reject tasks before anything can leave the workspace.',
+  },
+  {
+    icon: Github,
+    title: 'Real export path',
+    detail: 'Public payloads are safe; guarded team mode can create real issues.',
   },
 ];
 
@@ -132,7 +162,6 @@ const skillStack = [
 ];
 const workspaceStorageKey = 'ai-task-agent.workspaceId';
 const accessTokenStorageKey = 'ai-task-agent.accessToken';
-const enteredAppStorageKey = 'ai-task-agent.enteredApp';
 
 function emptyWorkspace() {
   return {
@@ -248,17 +277,33 @@ function parseSseBlock(block) {
 function App() {
   const [enteredApp, setEnteredApp] = useState(() => {
     if (typeof window === 'undefined') return false;
-    return window.location.hash === '#app' || localStorage.getItem(enteredAppStorageKey) === '1';
+    return window.location.hash === '#app';
   });
 
+  useEffect(() => {
+    function syncRouteMode() {
+      setEnteredApp(window.location.hash === '#app');
+    }
+    window.addEventListener('hashchange', syncRouteMode);
+    window.addEventListener('popstate', syncRouteMode);
+    return () => {
+      window.removeEventListener('hashchange', syncRouteMode);
+      window.removeEventListener('popstate', syncRouteMode);
+    };
+  }, []);
+
   function enterDemo() {
-    localStorage.setItem(enteredAppStorageKey, '1');
-    if (window.location.hash !== '#app') window.history.replaceState(null, '', '#app');
+    if (window.location.hash !== '#app') window.history.pushState(null, '', '#app');
     setEnteredApp(true);
   }
 
+  function leaveDemo() {
+    window.history.pushState(null, '', window.location.pathname + window.location.search);
+    setEnteredApp(false);
+  }
+
   if (!enteredApp) return <LandingPage onEnter={enterDemo} />;
-  return <WorkspaceApp />;
+  return <WorkspaceApp onLeave={leaveDemo} />;
 }
 
 function LandingPage({ onEnter }) {
@@ -274,65 +319,226 @@ function LandingPage({ onEnter }) {
             <span>Product ops copilot</span>
           </div>
         </div>
+        <nav className="nova-landing-links" aria-label="Landing navigation">
+          <a href="#workflow">Workflow</a>
+          <a href="#demo">Demo</a>
+          <a href="#integrations">Integrations</a>
+        </nav>
         <Button onClick={onEnter}>
           <Play data-icon="inline-start" />
-          Open demo workspace
+          Open demo
         </Button>
       </header>
 
-      <section className="nova-landing-hero">
+      <section className="nova-landing-hero" id="workflow">
         <div className="nova-landing-copy">
-          <h1>Turn a SaaS product idea into an approved engineering issue package.</h1>
+          <h1>From product idea to approved issue package</h1>
           <p>
-            AI Task Agent creates a PRD, breaks it into reviewable tasks, waits for human approval,
-            then prepares Linear or GitHub issue payloads. Public demo mode is safe; private team mode can create real issues.
+            Capture ideas, generate PRDs, plan tasks, get human approval, and export to Linear
+            or GitHub issues with an agent that keeps the full trace visible.
           </p>
           <div className="nova-landing-actions">
             <Button onClick={onEnter}>
               <Play data-icon="inline-start" />
-              Try the live demo
+              Open live demo
             </Button>
             <Button variant="secondary" onClick={onEnter}>
-              Use example idea
+              Start with example
             </Button>
           </div>
         </div>
-        <div className="nova-landing-preview" aria-label="Product workflow preview">
-          <div className="nova-landing-preview-head">
-            <span>Live workflow</span>
-            <ToneBadge tone="success">OpenRouter + D1</ToneBadge>
+
+        <div className="nova-agent-stage" id="demo" aria-label="AI agent workflow preview">
+          <img
+            className="nova-agent-machine"
+            src="/assets/agent-flow-machine.png"
+            alt="Glass workflow machine connecting idea capture, PRD generation, task planning, review, and export"
+          />
+
+          <div className="nova-stage-panel nova-stage-panel-input">
+            <span>Product idea</span>
+            <p>A lightweight customer feedback portal for B2B SaaS teams.</p>
+            <small>
+              <Bot />
+              OpenRouter planner
+            </small>
           </div>
-          <div className="nova-landing-flow">
-            {productSteps.map((step, index) => (
-              <div key={step.label} className="nova-landing-step">
-                <span>{String(index + 1).padStart(2, '0')}</span>
-                <strong>{step.title}</strong>
-                <p>{step.detail}</p>
+
+          <div className="nova-stage-panel nova-stage-panel-export">
+            <span>Issue package</span>
+            <ul>
+              <li>
+                <CheckCircle2 />
+                PRD markdown
+              </li>
+              <li>
+                <CheckCircle2 />
+                Approved tasks
+              </li>
+              <li>
+                <CheckCircle2 />
+                Tool-call trace
+              </li>
+            </ul>
+            <small>
+              <Github />
+              Linear / GitHub ready
+            </small>
+          </div>
+
+          <section className="nova-agent-rail" aria-label="Agent progress">
+            {landingProgress.map((step, index) => {
+              const StepIcon = step.icon;
+              return (
+                <div key={step.label} className={`nova-agent-rail-step is-${step.tone}`}>
+                  <span>
+                    <StepIcon />
+                  </span>
+                  <div>
+                    <strong>{step.label}</strong>
+                    <small>{index === 2 ? '5 tasks' : step.state}</small>
+                  </div>
+                </div>
+              );
+            })}
+          </section>
+        </div>
+
+        <section className="nova-landing-signal-row">
+          <div>
+            <Database />
+            <span>D1 persistence</span>
+            <strong>isolated guest workspace</strong>
+          </div>
+          <div>
+            <Workflow />
+            <span>Traceable tools</span>
+            <strong>PRD, tasks, approvals</strong>
+          </div>
+          <div>
+            <Send />
+            <span>Safe public export</span>
+            <strong>real issues in guarded mode</strong>
+          </div>
+        </section>
+      </section>
+
+      <section className="nova-landing-system">
+        <div className="nova-system-copy">
+          <h2>The product flow stays controlled after generation.</h2>
+          <p>
+            The agent does not just “show a demo”. It writes durable state, exposes trace events,
+            waits for review, and only packages approved tasks for engineering systems.
+          </p>
+        </div>
+        <div className="nova-system-grid">
+          <section className="nova-system-card">
+            <div className="nova-preview-composer">
+              <div>
+                <span>1. Capture your product idea</span>
+                <p>A lightweight customer feedback portal for B2B SaaS teams.</p>
               </div>
-            ))}
-          </div>
+              <div className="nova-preview-composer-actions">
+                <ToneBadge tone="success">Provider: OpenRouter</ToneBadge>
+                <Button size="sm" onClick={onEnter}>
+                  <Play data-icon="inline-start" />
+                  Generate PRD & tasks
+                </Button>
+              </div>
+            </div>
+          </section>
+
+          <section className="nova-system-card nova-system-card-wide">
+            <div className="nova-preview-section-head">
+              <div>
+                <span>Planned tasks</span>
+                <strong>5 generated</strong>
+              </div>
+              <ToneBadge tone="info">Human review gate</ToneBadge>
+            </div>
+            <div className="nova-preview-task-list">
+              {landingTasks.map((task, index) => (
+                <article key={task.title} className="nova-preview-task">
+                  <span className="nova-preview-task-index">{index + 1}</span>
+                  <div>
+                    <strong>{task.title}</strong>
+                    <p>{task.detail}</p>
+                  </div>
+                  <div className="nova-preview-task-meta">
+                    <span>{task.owner}</span>
+                    <ToneBadge tone={task.priority === 'High' ? 'warning' : task.priority === 'Medium' ? 'info' : 'success'}>
+                      {task.priority}
+                    </ToneBadge>
+                    <span>{task.estimate}</span>
+                  </div>
+                  <ToneBadge tone={task.status === 'Ready' ? 'success' : task.status === 'Review' ? 'info' : 'warning'}>
+                    {task.status}
+                  </ToneBadge>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <aside className="nova-system-card nova-preview-export" id="integrations">
+            <div className="nova-preview-section-head">
+              <div>
+                <span>Export package</span>
+                <strong>Ready after approval</strong>
+              </div>
+              <ToneBadge tone="success">Safe payload</ToneBadge>
+            </div>
+            <ul>
+              <li>
+                <CheckCircle2 />
+                PRD markdown
+              </li>
+              <li>
+                <CheckCircle2 />
+                Approved task bodies
+              </li>
+              <li>
+                <CheckCircle2 />
+                Estimates, labels, owners
+              </li>
+              <li>
+                <CheckCircle2 />
+                Tool-call trace
+              </li>
+            </ul>
+            <button type="button" onClick={onEnter}>
+              <Send />
+              Linear
+            </button>
+            <button type="button" onClick={onEnter}>
+              <Github />
+              GitHub Issues
+            </button>
+            <p>
+              Private team tokens unlock real issue creation; public demo exports a safe package.
+            </p>
+          </aside>
         </div>
       </section>
 
       <section className="nova-landing-proof">
-        <div>
-          <strong>Guest workspaces</strong>
-          <p>Each visitor gets an isolated guest workspace, so old runs never bleed into a new demo.</p>
-        </div>
-        <div>
-          <strong>Human approval gate</strong>
-          <p>Tasks must be edited, approved, or rejected before export is unlocked.</p>
-        </div>
-        <div>
-          <strong>Private issue creation</strong>
-          <p>Team tokens unlock guarded workspaces for real Linear/GitHub issue creation.</p>
-        </div>
+        {landingProofs.map((proof) => {
+          const ProofIcon = proof.icon;
+          return (
+            <div key={proof.title}>
+              <span>
+                <ProofIcon />
+              </span>
+              <strong>{proof.title}</strong>
+              <p>{proof.detail}</p>
+            </div>
+          );
+        })}
       </section>
     </main>
   );
 }
 
-function WorkspaceApp() {
+function WorkspaceApp({ onLeave }) {
   const [idea, setIdea] = useState(sampleIdea);
   const [workspace, setWorkspace] = useState(emptyWorkspace);
   const [exportTarget, setExportTarget] = useState('Linear');
@@ -858,6 +1064,9 @@ function WorkspaceApp() {
                   <RefreshCw data-icon="inline-start" />
                 )}
                 Reset
+              </Button>
+              <Button variant="ghost" onClick={onLeave}>
+                Landing
               </Button>
               <Button onClick={runAgent} disabled={busyAction === 'agent'}>
                 {busyAction === 'agent' ? (
