@@ -981,10 +981,18 @@ function WorkflowOverview({ steps }) {
   );
 }
 
+function ToneBadge({ tone = 'neutral', children }) {
+  return (
+    <Badge variant="secondary" className={`nova-tone-badge tone-${tone}`}>
+      {children}
+    </Badge>
+  );
+}
+
 function WorkflowStateBadge({ state }) {
-  const variant = state === 'active' ? 'default' : state === 'done' ? 'secondary' : 'outline';
+  const tone = state === 'active' ? 'brand' : state === 'done' ? 'success' : 'neutral';
   const label = state === 'done' ? 'Done' : state === 'active' ? 'Now' : 'Next';
-  return <Badge variant={variant}>{label}</Badge>;
+  return <ToneBadge tone={tone}>{label}</ToneBadge>;
 }
 
 function buildWorkflowSteps({ idea, prd, counts, exports, busyAction }) {
@@ -1033,14 +1041,14 @@ function RuntimeStrip({ workspace, provider }) {
       <span>
         Workspace <strong>{workspace}</strong>
       </span>
-      <Badge variant="outline">AI {provider.ai}</Badge>
-      <Badge variant="outline">Storage {provider.storage}</Badge>
-      <Badge variant={provider.linear === 'configured' ? 'secondary' : 'outline'}>
+      <ToneBadge tone="information">AI {provider.ai}</ToneBadge>
+      <ToneBadge tone="neutral">Storage {provider.storage}</ToneBadge>
+      <ToneBadge tone={provider.linear === 'configured' ? 'success' : 'warning'}>
         Linear {provider.linear}
-      </Badge>
-      <Badge variant={provider.access === 'guarded' ? 'secondary' : 'outline'}>
+      </ToneBadge>
+      <ToneBadge tone={provider.access === 'guarded' ? 'success' : 'warning'}>
         {provider.access === 'guarded' ? 'Private access' : 'Public demo'}
-      </Badge>
+      </ToneBadge>
     </div>
   );
 }
@@ -1361,13 +1369,15 @@ function DemoReportContent({ report, busyAction, runDemoReport }) {
 }
 
 function ReadinessBadge({ status }) {
-  const variant =
+  const tone =
     status === 'ready'
-      ? 'secondary'
+      ? 'success'
       : ['missing', 'misconfigured', 'failed'].includes(status)
-        ? 'destructive'
-        : 'outline';
-  return <Badge variant={variant}>{status}</Badge>;
+        ? 'danger'
+        : ['fallback', 'pending'].includes(status)
+          ? 'warning'
+          : 'neutral';
+  return <ToneBadge tone={tone}>{status}</ToneBadge>;
 }
 
 function TaskList({
@@ -1512,9 +1522,9 @@ function TaskList({
               <p>{task.acceptance}</p>
             </div>
             <footer className="nova-ticket-footer">
-              <Badge variant="outline">{task.owner}</Badge>
-              <Badge variant={task.priority === 'High' ? 'destructive' : 'secondary'}>{task.priority}</Badge>
-              <Badge variant="secondary">{task.effort || 'Unestimated'}</Badge>
+              <ToneBadge tone="neutral">{task.owner}</ToneBadge>
+              <PriorityBadge priority={task.priority} />
+              <ToneBadge tone="neutral">{task.effort || 'Unestimated'}</ToneBadge>
             </footer>
           </article>
         ))}
@@ -1923,8 +1933,29 @@ function SummaryList({ title, items }) {
 }
 
 function StatusBadge({ status }) {
-  const variant = status === 'approved' ? 'secondary' : status === 'rejected' ? 'destructive' : 'outline';
-  return <Badge variant={variant}>{status}</Badge>;
+  const tone =
+    status === 'approved'
+      ? 'success'
+      : status === 'rejected'
+        ? 'danger'
+        : ['pending', 'waiting'].includes(status)
+          ? 'warning'
+          : ['planned', 'draft'].includes(status)
+            ? 'information'
+            : 'neutral';
+  return <ToneBadge tone={tone}>{status}</ToneBadge>;
+}
+
+function PriorityBadge({ priority }) {
+  const tone =
+    priority === 'High'
+      ? 'danger'
+      : priority === 'Medium'
+        ? 'information'
+        : priority === 'Low'
+          ? 'success'
+          : 'neutral';
+  return <ToneBadge tone={tone}>{priority || 'Priority'}</ToneBadge>;
 }
 
 function buildPreviewPayload(target, prd, tasks) {

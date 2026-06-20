@@ -15,11 +15,28 @@
   --faint: #aaaaa5;
   --border: #eeeeec;
   --border-strong: #dfdfdc;
-  --coral: #e45f43;
-  --coral-soft: #f7e7e2;
-  --amber: #b7791f;
-  --red: #c2413d;
-  --red-soft: #fff0ee;
+  --brand: #2563eb;
+  --brand-hover: #1d4ed8;
+  --brand-soft: #eaf1ff;
+  --brand-text: #1558bc;
+  --success: #216e4e;
+  --success-soft: #dcfff1;
+  --warning: #9e4c00;
+  --warning-soft: #fff4d6;
+  --danger: #c2413d;
+  --danger-soft: #ffe8e5;
+  --information: #1558bc;
+  --information-soft: #e9f2ff;
+  --discovery: #6f42c1;
+  --discovery-soft: #f3e8ff;
+  --action: var(--brand);
+  --action-hover: var(--brand-hover);
+  --selected: var(--brand-soft);
+  --coral: var(--danger);
+  --coral-soft: var(--danger-soft);
+  --amber: var(--warning);
+  --red: var(--danger);
+  --red-soft: var(--danger-soft);
   --shadow: 0 24px 70px rgba(22, 22, 20, 0.08);
   color: var(--ink);
   font-family:
@@ -39,15 +56,15 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  --primary: var(--brand);
+  --primary-foreground: #ffffff;
   --secondary: #ffffff;
   --secondary-foreground: oklch(0.205 0 0);
   --muted: var(--surface-soft);
   --muted-foreground: #7b7b7b;
-  --accent: var(--coral-soft);
+  --accent: var(--brand-soft);
   --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
+  --destructive: var(--danger);
   --input: #ffffff;
   --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.87 0 0);
@@ -143,17 +160,54 @@ button:disabled {
   background: #ffffff;
 }
 
+[data-slot="badge"].nova-tone-badge {
+  --tone-bg: #ffffff;
+  --tone-fg: var(--foreground);
+  background: var(--tone-bg);
+  color: var(--tone-fg);
+}
+
+[data-slot="badge"].nova-tone-badge.tone-brand {
+  --tone-bg: var(--brand-soft);
+  --tone-fg: var(--brand-text);
+}
+
+[data-slot="badge"].nova-tone-badge.tone-information {
+  --tone-bg: var(--information-soft);
+  --tone-fg: var(--information);
+}
+
+[data-slot="badge"].nova-tone-badge.tone-success {
+  --tone-bg: var(--success-soft);
+  --tone-fg: var(--success);
+}
+
+[data-slot="badge"].nova-tone-badge.tone-warning {
+  --tone-bg: var(--warning-soft);
+  --tone-fg: var(--warning);
+}
+
+[data-slot="badge"].nova-tone-badge.tone-danger {
+  --tone-bg: var(--danger-soft);
+  --tone-fg: var(--danger);
+}
+
+[data-slot="badge"].nova-tone-badge.tone-discovery {
+  --tone-bg: var(--discovery-soft);
+  --tone-fg: var(--discovery);
+}
+
 .nova-sidebar [data-slot="button"][data-variant="secondary"] {
   background: var(--surface-soft);
 }
 
 .nova-idea-card [data-slot="button"][data-variant="default"] {
-  background: var(--coral);
+  background: var(--action);
   color: #ffffff;
 }
 
 .nova-idea-card [data-slot="button"][data-variant="default"]:hover {
-  background: color-mix(in oklch, var(--coral), var(--foreground) 8%);
+  background: var(--action-hover);
 }
 
 .nova-shell {
@@ -260,7 +314,7 @@ button:disabled {
 }
 
 .nova-kicker strong {
-  color: var(--coral);
+  color: var(--brand-text);
   font-weight: 700;
 }
 
@@ -590,9 +644,13 @@ button:disabled {
   height: 13px;
 }
 
-.nova-trace-row.done,
+.nova-trace-row.done {
+  color: var(--success);
+  background: #ffffff;
+}
+
 .nova-trace-row.active {
-  color: color-mix(in oklch, var(--coral), var(--foreground) 28%);
+  color: var(--brand-text);
   background: #ffffff;
 }
 
@@ -836,9 +894,12 @@ button:disabled {
   text-align: left;
 }
 
-.nova-run-row:hover:not(:disabled),
+.nova-run-row:hover:not(:disabled) {
+  background: var(--surface-softer);
+}
+
 .nova-run-row[data-state="active"] {
-  background: var(--coral-soft);
+  background: var(--selected);
 }
 
 .nova-run-row:disabled {
@@ -966,11 +1027,11 @@ button:disabled {
 }
 
 .nova-ticket-card:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in oklch, var(--coral), transparent 78%);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--brand), transparent 78%);
 }
 
 .nova-ticket-card[data-state="selected"] {
-  background: var(--coral-soft);
+  background: var(--selected);
 }
 
 .nova-ticket-head {
@@ -1101,7 +1162,7 @@ button:disabled {
 }
 
 .nova-connector-row[data-state="active"] {
-  background: var(--coral-soft);
+  background: var(--selected);
 }
 
 .nova-connector-row strong,
@@ -1244,7 +1305,7 @@ button:disabled {
   height: 8px;
   margin-top: 6px;
   border-radius: 999px;
-  background: var(--coral);
+  background: var(--brand);
 }
 
 .nova-log-dot.tool,
@@ -1253,7 +1314,7 @@ button:disabled {
 }
 
 .nova-log-dot.approval {
-  background: #b7791f;
+  background: var(--warning);
 }
 
 .nova-log-row strong {
