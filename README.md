@@ -1,5 +1,8 @@
 # AI Task Agent
 
+**Live demo:** [ai-task-agent-sepia.vercel.app](https://ai-task-agent-sepia.vercel.app)  
+**Source:** [github.com/TargiX/ai-task-agent](https://github.com/TargiX/ai-task-agent)
+
 Small SaaS team workflow agent:
 
 1. User writes a product idea.
