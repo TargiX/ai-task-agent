@@ -2288,6 +2288,30 @@ button:disabled {
   gap: 8px;
 }
 
+.nova-export-confirm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
+  padding: 10px;
+  border-radius: 20px;
+  background: var(--warning-soft);
+}
+
+.nova-export-confirm strong {
+  display: block;
+  color: var(--foreground);
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.nova-export-confirm p {
+  margin: 3px 0 0;
+  color: var(--warning);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
 .nova-export-history {
   display: grid;
   gap: 8px;

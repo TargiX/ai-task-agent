@@ -2389,6 +2389,7 @@ function ExportPanel({
   verifyIntegrations,
   exports,
 }) {
+  const [confirmingIssueCreation, setConfirmingIssueCreation] = useState(false);
   const targetKey = exportTarget.toLowerCase();
   const targetIntegration = integrationVerification?.providers?.[targetKey];
   const hasApprovedTasks = approvedCount > 0;
@@ -2400,6 +2401,18 @@ function ExportPanel({
   const exportMode = exportPackage?.mode || clientExportMode(exportTarget, provider);
   const exportModeTone = exportMode.canCreateIssues ? 'success' : exportMode.connector === 'configured' ? 'warning' : 'neutral';
   const exportActionLabel = exportMode.canCreateIssues ? `Create ${exportTarget} issues` : 'Save export package';
+
+  useEffect(() => {
+    setConfirmingIssueCreation(false);
+  }, [exportTarget, exportPackage?.status, exportMode.canCreateIssues, approvedCount]);
+
+  function handleExportClick() {
+    if (exportMode.canCreateIssues && !confirmingIssueCreation) {
+      setConfirmingIssueCreation(true);
+      return;
+    }
+    exportIssues();
+  }
 
   return (
     <Card className="nova-export" size="sm" id="exports">
@@ -2528,13 +2541,31 @@ function ExportPanel({
             Download
           </Button>
         </div>
-        <Button disabled={!canExport} onClick={exportIssues}>
+        {exportMode.canCreateIssues && confirmingIssueCreation ? (
+          <div className="nova-export-confirm">
+            <div>
+              <strong>Confirm real issue creation</strong>
+              <p>
+                This will send {exportPackage?.summary?.pendingExportCount ?? approvedCount} approved task
+                {Number(exportPackage?.summary?.pendingExportCount ?? approvedCount) === 1 ? '' : 's'} to {exportTarget}. Package-only downloads stay local.
+              </p>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => setConfirmingIssueCreation(false)}>
+              Cancel
+            </Button>
+          </div>
+        ) : null}
+        <Button disabled={!canExport} onClick={handleExportClick}>
           {busyAction === 'export' ? (
             <Loader2 className="spin" data-icon="inline-start" />
           ) : (
-            <Send data-icon="inline-start" />
+            exportMode.canCreateIssues && !confirmingIssueCreation ? (
+              <AlertCircle data-icon="inline-start" />
+            ) : (
+              <Send data-icon="inline-start" />
+            )
           )}
-          {exportActionLabel}
+          {exportMode.canCreateIssues && confirmingIssueCreation ? `Confirm ${exportTarget} creation` : exportActionLabel}
         </Button>
         <Separator />
         <div className="nova-export-history">
