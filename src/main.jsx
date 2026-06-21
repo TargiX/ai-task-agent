@@ -148,6 +148,7 @@ const navItems = [
   { label: 'Runs', icon: History, target: '#runs', view: 'workspace' },
   { label: 'Review', icon: ListChecks, target: '#task-db', view: 'workspace' },
   { label: 'Exports', icon: Send, target: '#exports', view: 'workspace' },
+  { label: 'Team setup', icon: KeyRound, view: 'setup' },
   { label: 'Diagnostics', icon: Workflow, target: '#diagnostics', view: 'workspace' },
   { label: 'Guide', icon: FileText, view: 'guide' },
 ];
@@ -1042,6 +1043,8 @@ function WorkspaceApp({ onLeave }) {
     URL.revokeObjectURL(url);
   }
 
+  const activeViewMeta = getActiveViewMeta(activeView, prd);
+
   return (
     <TooltipProvider>
       <main className="nova-shell">
@@ -1059,7 +1062,7 @@ function WorkspaceApp({ onLeave }) {
           <nav className="nova-nav">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const active = activeView === item.view && (item.view === 'guide' || item.label === 'Workspace');
+              const active = activeView === item.view && (!item.target || item.label === 'Workspace');
               return (
                 <Button
                   key={item.label}
@@ -1086,11 +1089,11 @@ function WorkspaceApp({ onLeave }) {
           <header className="nova-topbar">
             <div className="nova-title">
               <div className="nova-kicker">
-                {activeView === 'guide' ? 'Guide' : 'Ideas'}
+                {activeViewMeta.kicker}
                 <span>/</span>
-                <strong>{activeView === 'guide' ? 'How it works' : prd ? 'Run active' : 'Draft'}</strong>
+                <strong>{activeViewMeta.state}</strong>
               </div>
-              <h1>{activeView === 'guide' ? 'How AI Task Agent becomes engineering work' : prd ? prd.title : 'Product idea workspace'}</h1>
+              <h1>{activeViewMeta.title}</h1>
             </div>
             <div className="nova-command-bar">
               <FieldGroup className="nova-workspace-fields">
@@ -1184,6 +1187,22 @@ function WorkspaceApp({ onLeave }) {
                   document.querySelector('#private-access')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
                 );
               }}
+            />
+          ) : activeView === 'setup' ? (
+            <TeamSetupSurface
+              workspace={workspace.workspace}
+              provider={provider}
+              teamConfig={teamConfig}
+              integrationVerification={integrationVerification}
+              privateWorkspaceDraft={privateWorkspaceDraft}
+              privateTokenDraft={privateTokenDraft}
+              setPrivateWorkspaceDraft={setPrivateWorkspaceDraft}
+              setPrivateTokenDraft={setPrivateTokenDraft}
+              busyAction={busyAction}
+              openPrivateWorkspace={openPrivateWorkspace}
+              leavePrivateWorkspace={leavePrivateWorkspace}
+              verifyIntegrations={verifyIntegrations}
+              onWorkspace={() => setActiveView('workspace')}
             />
           ) : (
             <>
@@ -1401,6 +1420,28 @@ function WorkspaceApp({ onLeave }) {
   );
 }
 
+function getActiveViewMeta(activeView, prd) {
+  if (activeView === 'guide') {
+    return {
+      kicker: 'Guide',
+      state: 'How it works',
+      title: 'How AI Task Agent becomes engineering work',
+    };
+  }
+  if (activeView === 'setup') {
+    return {
+      kicker: 'Team',
+      state: 'Private mode',
+      title: 'Team workspace setup',
+    };
+  }
+  return {
+    kicker: 'Ideas',
+    state: prd ? 'Run active' : 'Draft',
+    title: prd ? prd.title : 'Product idea workspace',
+  };
+}
+
 function GuideSurface({ provider, counts, runHistory, teamConfig, onStart, onPrivate }) {
   const reviewed = counts.approved + counts.rejected;
   return (
@@ -1504,6 +1545,178 @@ function GuideSurface({ provider, counts, runHistory, teamConfig, onStart, onPri
       </section>
     </section>
   );
+}
+
+function TeamSetupSurface({
+  workspace,
+  provider,
+  teamConfig,
+  integrationVerification,
+  privateWorkspaceDraft,
+  privateTokenDraft,
+  setPrivateWorkspaceDraft,
+  setPrivateTokenDraft,
+  busyAction,
+  openPrivateWorkspace,
+  leavePrivateWorkspace,
+  verifyIntegrations,
+  onWorkspace,
+}) {
+  const isPrivate = provider.access === 'guarded';
+  const teamOptions = teamConfig?.teams || [];
+  const github = integrationVerification?.providers?.github;
+  const linear = integrationVerification?.providers?.linear;
+  const workspaceLabel = workspace?.team?.label || workspace?.label || workspace?.id || 'Guest workspace';
+  const readiness = [
+    {
+      label: 'Workspace mode',
+      value: isPrivate ? 'Guarded' : 'Public demo',
+      detail: isPrivate
+        ? 'Real issue creation is unlocked after task approval and connector verification.'
+        : 'Approvals produce safe export packages until a team token is active.',
+      tone: isPrivate ? 'success' : 'warning',
+      icon: isPrivate ? KeyRound : Database,
+    },
+    {
+      label: 'Team workspaces',
+      value: teamOptions.length ? `${teamOptions.length} configured` : 'Not configured',
+      detail: teamOptions.length
+        ? 'Team ids are available without exposing tokens in the browser.'
+        : 'Add WORKSPACE_TEAM_TOKENS on the deployment to enable private teams.',
+      tone: teamOptions.length ? 'success' : 'neutral',
+      icon: Settings,
+    },
+    {
+      label: 'Linear',
+      value: linear?.status || provider.linear,
+      detail: linear?.detail || 'Linear verifier has not run yet.',
+      tone: statusTone(linear?.status || provider.linear),
+      icon: GitPullRequest,
+    },
+    {
+      label: 'GitHub',
+      value: github?.status || provider.github,
+      detail: github?.detail || 'GitHub verifier has not run yet.',
+      tone: statusTone(github?.status || provider.github),
+      icon: Github,
+    },
+  ];
+
+  return (
+    <section className="nova-team-setup-view" id="team-setup">
+      <div className="nova-team-setup-hero" data-mode={isPrivate ? 'private' : 'public'}>
+        <div>
+          <ToneBadge tone={isPrivate ? 'success' : 'warning'}>{isPrivate ? 'Private active' : 'Public demo'}</ToneBadge>
+          <h2>{isPrivate ? `${workspaceLabel} can create real issues` : 'Open a guarded workspace before real exports'}</h2>
+          <p>
+            The same product flow stays in place: idea, PRD, generated tasks, human approval, then either a safe
+            package or connector-backed issue creation.
+          </p>
+        </div>
+        <div className="nova-team-setup-actions">
+          {isPrivate ? (
+            <Button variant="secondary" onClick={leavePrivateWorkspace} disabled={busyAction === 'workspace-session'}>
+              {busyAction === 'workspace-session' ? (
+                <Loader2 className="spin" data-icon="inline-start" />
+              ) : (
+                <RefreshCw data-icon="inline-start" />
+              )}
+              Leave private
+            </Button>
+          ) : null}
+          <Button variant={isPrivate ? 'outline' : 'secondary'} onClick={onWorkspace}>
+            <LayoutDashboard data-icon="inline-start" />
+            Back to workspace
+          </Button>
+        </div>
+      </div>
+
+      <div className="nova-team-setup-grid">
+        <Card className="nova-team-setup-card nova-team-setup-card-wide" size="sm">
+          <CardHeader>
+            <CardTitle>Private workspace access</CardTitle>
+            <CardDescription>Use a configured team id plus token to switch this browser into guarded mode.</CardDescription>
+            <CardAction>
+              <KeyRound className="nova-card-icon" />
+            </CardAction>
+          </CardHeader>
+          <CardContent>
+            <PrivateAccessPanel
+              teamConfig={teamConfig}
+              privateWorkspaceDraft={privateWorkspaceDraft}
+              privateTokenDraft={privateTokenDraft}
+              setPrivateWorkspaceDraft={setPrivateWorkspaceDraft}
+              setPrivateTokenDraft={setPrivateTokenDraft}
+              busyAction={busyAction}
+              openPrivateWorkspace={openPrivateWorkspace}
+            />
+          </CardContent>
+        </Card>
+
+        <Card className="nova-team-setup-card" size="sm">
+          <CardHeader>
+            <CardTitle>Connector verification</CardTitle>
+            <CardDescription>Read-only checks run before real issue creation.</CardDescription>
+            <CardAction>
+              <Workflow className="nova-card-icon" />
+            </CardAction>
+          </CardHeader>
+          <CardContent>
+            <div className="nova-connector-stack">
+              {[linear, github].map((item, index) => {
+                const fallback =
+                  index === 0 ? { label: 'Linear', status: provider.linear } : { label: 'GitHub Issues', status: provider.github };
+                const status = item?.status || fallback.status;
+                return (
+                  <div key={fallback.label}>
+                    <span>
+                      <strong>{item?.label || fallback.label}</strong>
+                      <small>{item?.detail || 'Verification has not run in this session.'}</small>
+                    </span>
+                    <ToneBadge tone={statusTone(status)}>{status}</ToneBadge>
+                  </div>
+                );
+              })}
+            </div>
+            <Button variant="secondary" onClick={verifyIntegrations} disabled={busyAction === 'verify-integrations'}>
+              {busyAction === 'verify-integrations' ? (
+                <Loader2 className="spin" data-icon="inline-start" />
+              ) : (
+                <RefreshCw data-icon="inline-start" />
+              )}
+              Verify connectors
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      <section className="nova-team-readiness" aria-label="Team readiness">
+        {readiness.map((item) => {
+          const ItemIcon = item.icon;
+          return (
+            <article key={item.label}>
+              <span>
+                <ItemIcon />
+              </span>
+              <div>
+                <small>{item.label}</small>
+                <strong>{item.value}</strong>
+                <p>{item.detail}</p>
+              </div>
+              <ToneBadge tone={item.tone}>{item.tone === 'success' ? 'ready' : item.tone === 'warning' ? 'limited' : 'check'}</ToneBadge>
+            </article>
+          );
+        })}
+      </section>
+    </section>
+  );
+}
+
+function statusTone(status = '') {
+  if (['ready', 'configured', 'guarded'].includes(status)) return 'success';
+  if (['missing', 'not-configured', 'demo-open'].includes(status)) return 'warning';
+  if (['failed', 'misconfigured'].includes(status)) return 'danger';
+  return 'neutral';
 }
 
 function RunHistoryPanel({ runs, activeRunId, provider, storageDetail, busyAction, selectRun }) {
