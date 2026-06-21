@@ -144,11 +144,56 @@ const landingProofs = [
 ];
 
 const navItems = [
-  { label: 'Workspace', icon: LayoutDashboard, target: '#workspace', active: true },
-  { label: 'Runs', icon: History, target: '#runs' },
-  { label: 'Review', icon: ListChecks, target: '#task-db' },
-  { label: 'Exports', icon: Send, target: '#exports' },
-  { label: 'Diagnostics', icon: Workflow, target: '#diagnostics' },
+  { label: 'Workspace', icon: LayoutDashboard, target: '#workspace', view: 'workspace' },
+  { label: 'Runs', icon: History, target: '#runs', view: 'workspace' },
+  { label: 'Review', icon: ListChecks, target: '#task-db', view: 'workspace' },
+  { label: 'Exports', icon: Send, target: '#exports', view: 'workspace' },
+  { label: 'Diagnostics', icon: Workflow, target: '#diagnostics', view: 'workspace' },
+  { label: 'Guide', icon: FileText, view: 'guide' },
+];
+
+const guideSteps = [
+  {
+    title: 'Write or choose an idea',
+    detail: 'Use a fresh guest workspace, paste a SaaS product idea, or load one of the examples.',
+    icon: Sparkles,
+  },
+  {
+    title: 'Generate PRD and tasks',
+    detail: 'The planner creates a PRD, five normalized tasks, and a trace of the tool calls used.',
+    icon: Bot,
+  },
+  {
+    title: 'Review the queue',
+    detail: 'Edit owner, priority, estimate, and acceptance criteria before the export gate opens.',
+    icon: ListChecks,
+  },
+  {
+    title: 'Package or create issues',
+    detail: 'Public demo prepares safe payloads; guarded team workspaces can create real issues.',
+    icon: Send,
+  },
+];
+
+const modeMatrix = [
+  {
+    label: 'Public demo',
+    value: 'Safe package',
+    detail: 'Guest workspace, live OpenRouter planning, D1 persistence, no real issue creation.',
+    tone: 'warning',
+  },
+  {
+    label: 'Private team',
+    value: 'Real issues',
+    detail: 'Team token unlocks guarded access and connector-backed Linear/GitHub issue creation.',
+    tone: 'success',
+  },
+  {
+    label: 'Traceability',
+    value: 'Visible proof',
+    detail: 'PRD, tasks, graph events, tool calls, run history, and export payload stay inspectable.',
+    tone: 'information',
+  },
 ];
 
 const skillStack = [
@@ -539,6 +584,7 @@ function LandingPage({ onEnter }) {
 }
 
 function WorkspaceApp({ onLeave }) {
+  const [activeView, setActiveView] = useState('workspace');
   const [idea, setIdea] = useState(sampleIdea);
   const [workspace, setWorkspace] = useState(emptyWorkspace);
   const [exportTarget, setExportTarget] = useState('Linear');
@@ -987,12 +1033,20 @@ function WorkspaceApp({ onLeave }) {
           <nav className="nova-nav">
             {navItems.map((item) => {
               const Icon = item.icon;
+              const active = activeView === item.view && (item.view === 'guide' || item.label === 'Workspace');
               return (
                 <Button
                   key={item.label}
-                  variant={item.active ? 'secondary' : 'ghost'}
+                  variant={active ? 'secondary' : 'ghost'}
                   className="nova-nav-item"
-                  onClick={() => document.querySelector(item.target)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                  onClick={() => {
+                    setActiveView(item.view);
+                    if (item.target) {
+                      requestAnimationFrame(() =>
+                        document.querySelector(item.target)?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+                      );
+                    }
+                  }}
                 >
                   <Icon data-icon="inline-start" />
                   {item.label}
@@ -1006,11 +1060,11 @@ function WorkspaceApp({ onLeave }) {
           <header className="nova-topbar">
             <div className="nova-title">
               <div className="nova-kicker">
-                Ideas
+                {activeView === 'guide' ? 'Guide' : 'Ideas'}
                 <span>/</span>
-                <strong>{prd ? 'Run active' : 'Draft'}</strong>
+                <strong>{activeView === 'guide' ? 'How it works' : prd ? 'Run active' : 'Draft'}</strong>
               </div>
-              <h1>{prd ? prd.title : 'Product idea workspace'}</h1>
+              <h1>{activeView === 'guide' ? 'How AI Task Agent becomes engineering work' : prd ? prd.title : 'Product idea workspace'}</h1>
             </div>
             <div className="nova-command-bar">
               <FieldGroup className="nova-workspace-fields">
@@ -1086,17 +1140,38 @@ function WorkspaceApp({ onLeave }) {
             </Alert>
           )}
 
-          <section className="nova-status-grid">
-            <MetricCard label="Total tasks" value={counts.total} />
-            <MetricCard label="Approved" value={counts.approved} />
-            <MetricCard label="Pending" value={counts.pending} />
-            <MetricCard label="Runs" value={runHistory.length} />
-          </section>
-          <RuntimeStrip workspace={workspace.workspace?.label || workspaceKey} provider={provider} />
-          <WorkflowOverview steps={workflowSteps} />
+          {activeView === 'guide' ? (
+            <GuideSurface
+              provider={provider}
+              counts={counts}
+              runHistory={runHistory}
+              teamConfig={teamConfig}
+              onStart={() => {
+                setActiveView('workspace');
+                requestAnimationFrame(() =>
+                  document.querySelector('#workspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+                );
+              }}
+              onPrivate={() => {
+                setActiveView('workspace');
+                requestAnimationFrame(() =>
+                  document.querySelector('#private-access')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+                );
+              }}
+            />
+          ) : (
+            <>
+              <section className="nova-status-grid">
+                <MetricCard label="Total tasks" value={counts.total} />
+                <MetricCard label="Approved" value={counts.approved} />
+                <MetricCard label="Pending" value={counts.pending} />
+                <MetricCard label="Runs" value={runHistory.length} />
+              </section>
+              <RuntimeStrip workspace={workspace.workspace?.label || workspaceKey} provider={provider} />
+              <WorkflowOverview steps={workflowSteps} />
 
-          <div className="nova-scroll-region">
-            <div className="nova-workspace" id="workspace">
+              <div className="nova-scroll-region">
+                <div className="nova-workspace" id="workspace">
             <section className="nova-left">
               <Card className="nova-idea-card" size="sm">
                 <CardHeader>
@@ -1266,23 +1341,130 @@ function WorkspaceApp({ onLeave }) {
                 exports={exports}
               />
             </aside>
-            </div>
+                </div>
 
-            <DiagnosticsPanel
-              provider={provider}
-              counts={counts}
-              preflight={preflight}
-              verification={setupVerification}
-              busyAction={busyAction}
-              verifySetup={verifySetup}
-              report={demoReport}
-              runDemoReport={runDemoReport}
-              capabilities={preflight?.capabilities}
-            />
-          </div>
+                <DiagnosticsPanel
+                  provider={provider}
+                  counts={counts}
+                  preflight={preflight}
+                  verification={setupVerification}
+                  busyAction={busyAction}
+                  verifySetup={verifySetup}
+                  report={demoReport}
+                  runDemoReport={runDemoReport}
+                  capabilities={preflight?.capabilities}
+                />
+              </div>
+            </>
+          )}
         </section>
       </main>
     </TooltipProvider>
+  );
+}
+
+function GuideSurface({ provider, counts, runHistory, teamConfig, onStart, onPrivate }) {
+  const reviewed = counts.approved + counts.rejected;
+  return (
+    <section className="nova-guide-view" id="guide">
+      <div className="nova-guide-hero">
+        <div>
+          <h2>Use it as a controlled agent workflow, not a prompt toy.</h2>
+          <p>
+            Start in a guest workspace, generate planning output, review every task, then export only
+            approved work. Private team mode keeps the same flow but unlocks real issue creation.
+          </p>
+        </div>
+        <div className="nova-guide-actions">
+          <Button onClick={onStart}>
+            <Play data-icon="inline-start" />
+            Start a run
+          </Button>
+          <Button variant="secondary" onClick={onPrivate}>
+            <KeyRound data-icon="inline-start" />
+            Private mode
+          </Button>
+        </div>
+      </div>
+
+      <div className="nova-guide-layout">
+        <section className="nova-guide-steps" aria-label="How it works">
+          {guideSteps.map((step, index) => {
+            const StepIcon = step.icon;
+            return (
+              <article key={step.title}>
+                <span>{String(index + 1).padStart(2, '0')}</span>
+                <StepIcon />
+                <div>
+                  <strong>{step.title}</strong>
+                  <p>{step.detail}</p>
+                </div>
+              </article>
+            );
+          })}
+        </section>
+
+        <aside className="nova-guide-proof">
+          <div className="nova-guide-proof-head">
+            <strong>Current workspace proof</strong>
+            <ToneBadge tone={provider.access === 'guarded' ? 'success' : 'warning'}>
+              {provider.access === 'guarded' ? 'Private' : 'Public demo'}
+            </ToneBadge>
+          </div>
+          <div className="nova-guide-facts">
+            <MetricCard label="Provider" value={provider.ai} text />
+            <MetricCard label="Storage" value={provider.storage} text />
+            <MetricCard label="Reviewed" value={`${reviewed}/${counts.total || 0}`} text />
+            <MetricCard label="Runs" value={runHistory.length} />
+          </div>
+          <div className="nova-guide-checklist">
+            <strong>What makes it real</strong>
+            <p>Live planner selection, persisted workspace state, graph/tool-call trace, review gate, and connector verification are all visible in the app.</p>
+          </div>
+        </aside>
+      </div>
+
+      <section className="nova-guide-modes" aria-label="Product modes">
+        {modeMatrix.map((mode) => (
+          <article key={mode.label}>
+            <ToneBadge tone={mode.tone}>{mode.label}</ToneBadge>
+            <strong>{mode.value}</strong>
+            <p>{mode.detail}</p>
+          </article>
+        ))}
+      </section>
+
+      <section className="nova-guide-private">
+        <div>
+          <h3>Team workspace setup</h3>
+          <p>
+            Configured teams appear as guarded workspaces. Opening one with a team token switches the
+            same UI into real issue creation mode when Linear or GitHub connectors are ready.
+          </p>
+        </div>
+        <div className="nova-guide-team-list">
+          {(teamConfig?.teams || []).length ? (
+            teamConfig.teams.map((team) => (
+              <button key={team.id} type="button" onClick={onPrivate}>
+                <KeyRound />
+                <span>
+                  <strong>{team.label}</strong>
+                  <small>{team.id}</small>
+                </span>
+              </button>
+            ))
+          ) : (
+            <button type="button" onClick={onPrivate}>
+              <KeyRound />
+              <span>
+                <strong>Configure team tokens</strong>
+                <small>Deployment env vars control private access.</small>
+              </span>
+            </button>
+          )}
+        </div>
+      </section>
+    </section>
   );
 }
 

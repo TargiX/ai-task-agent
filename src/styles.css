@@ -1137,6 +1137,244 @@ button:disabled {
   align-self: center;
 }
 
+.nova-guide-view {
+  display: grid;
+  gap: 16px;
+  min-height: 0;
+  overflow: auto;
+  padding-bottom: 20px;
+}
+
+.nova-guide-hero,
+.nova-guide-layout,
+.nova-guide-modes,
+.nova-guide-private {
+  display: grid;
+  gap: 14px;
+}
+
+.nova-guide-hero {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  padding: 28px;
+  border-radius: 30px;
+  background: #ffffff;
+}
+
+.nova-guide-hero h2,
+.nova-guide-private h3 {
+  margin: 0;
+  max-width: 780px;
+  font-size: 34px;
+  font-weight: 760;
+  line-height: 1.04;
+}
+
+.nova-guide-hero p,
+.nova-guide-private p {
+  max-width: 720px;
+  margin: 10px 0 0;
+  color: var(--muted-foreground);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.nova-guide-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.nova-guide-layout {
+  grid-template-columns: minmax(0, 1fr) 340px;
+  align-items: start;
+}
+
+.nova-guide-steps {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.nova-guide-steps article {
+  display: grid;
+  grid-template-columns: 44px 38px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  min-width: 0;
+  padding: 18px;
+  border-radius: 26px;
+  background: #ffffff;
+}
+
+.nova-guide-steps article > span {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.nova-guide-steps article > svg {
+  width: 32px;
+  height: 32px;
+  padding: 8px;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand-text);
+}
+
+.nova-guide-steps article:nth-child(2) > svg {
+  background: var(--discovery-soft);
+  color: var(--discovery);
+}
+
+.nova-guide-steps article:nth-child(3) > svg {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.nova-guide-steps article:nth-child(4) > svg {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.nova-guide-steps strong,
+.nova-guide-modes strong,
+.nova-guide-checklist strong,
+.nova-guide-team-list strong {
+  display: block;
+  color: var(--foreground);
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.nova-guide-steps p,
+.nova-guide-modes p,
+.nova-guide-checklist p {
+  margin: 5px 0 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.nova-guide-proof,
+.nova-guide-private {
+  min-width: 0;
+  padding: 18px;
+  border-radius: 28px;
+  background: #ffffff;
+}
+
+.nova-guide-proof-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.nova-guide-proof-head strong {
+  font-size: 14px;
+}
+
+.nova-guide-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  overflow: hidden;
+  border-radius: 22px;
+  background: var(--surface-soft);
+}
+
+.nova-guide-facts .nova-metric {
+  min-height: 88px;
+}
+
+.nova-guide-facts .nova-metric:nth-child(odd) {
+  border-right: 1px solid var(--border);
+}
+
+.nova-guide-facts .nova-metric:nth-child(-n + 2) {
+  border-bottom: 1px solid var(--border);
+}
+
+.nova-guide-checklist {
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 20px;
+  background: var(--surface-soft);
+}
+
+.nova-guide-modes {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.nova-guide-modes article {
+  min-width: 0;
+  padding: 18px;
+  border-radius: 26px;
+  background: #ffffff;
+}
+
+.nova-guide-modes article > strong {
+  margin-top: 12px;
+  font-size: 18px;
+}
+
+.nova-guide-private {
+  grid-template-columns: minmax(0, 0.7fr) minmax(280px, 0.55fr);
+  align-items: center;
+}
+
+.nova-guide-private h3 {
+  font-size: 26px;
+}
+
+.nova-guide-team-list {
+  display: grid;
+  gap: 8px;
+}
+
+.nova-guide-team-list button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 12px;
+  border: 0;
+  border-radius: 20px;
+  background: var(--surface-soft);
+  color: var(--foreground);
+  text-align: left;
+  cursor: pointer;
+}
+
+.nova-guide-team-list button:hover {
+  background: var(--selected);
+}
+
+.nova-guide-team-list svg {
+  width: 18px;
+  height: 18px;
+  color: var(--brand-text);
+}
+
+.nova-guide-team-list small {
+  display: block;
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .nova-private-access {
   grid-column: 1 / -1;
   display: grid;
@@ -2151,7 +2389,9 @@ button:disabled {
   }
 
   .nova-private-access,
-  .nova-private-form {
+  .nova-private-form,
+  .nova-guide-layout,
+  .nova-guide-private {
     grid-template-columns: 1fr;
   }
 
@@ -2428,6 +2668,15 @@ button:disabled {
 
   .nova-demo-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .nova-guide-hero,
+  .nova-guide-modes {
+    grid-template-columns: 1fr;
+  }
+
+  .nova-guide-actions {
+    justify-content: flex-start;
   }
 
   .nova-workspace,
