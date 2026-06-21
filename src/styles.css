@@ -1098,6 +1098,73 @@ button:disabled {
   font-weight: 500;
 }
 
+.nova-session-banner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 24px;
+  background: #ffffff;
+}
+
+.nova-session-banner[data-mode="private"] {
+  background: color-mix(in oklch, var(--success-soft), #ffffff 62%);
+}
+
+.nova-session-main {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 11px;
+  align-items: center;
+  min-width: 0;
+}
+
+.nova-session-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand-text);
+}
+
+.nova-session-banner[data-mode="private"] .nova-session-icon {
+  background: var(--success);
+  color: #ffffff;
+}
+
+.nova-session-icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.nova-session-main strong {
+  display: block;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nova-session-main p {
+  margin: 3px 0 0;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.nova-session-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .nova-flow-strip {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -2676,6 +2743,14 @@ button:disabled {
   }
 
   .nova-guide-actions {
+    justify-content: flex-start;
+  }
+
+  .nova-session-banner {
+    grid-template-columns: 1fr;
+  }
+
+  .nova-session-actions {
     justify-content: flex-start;
   }
 

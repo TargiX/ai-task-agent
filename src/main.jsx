@@ -777,6 +777,32 @@ function WorkspaceApp({ onLeave }) {
     }
   }
 
+  async function leavePrivateWorkspace() {
+    const guestKey = createGuestWorkspaceKey();
+    localStorage.setItem(workspaceStorageKey, guestKey);
+    localStorage.removeItem(accessTokenStorageKey);
+    setWorkspaceKey(guestKey);
+    setWorkspaceDraft(guestKey);
+    setAccessTokenDraft('');
+    setPrivateWorkspaceDraft('');
+    setPrivateTokenDraft('');
+    setWorkspace(emptyWorkspace());
+    setSelectedTaskId(null);
+    setExportPackage(null);
+    setSetupVerification(null);
+    setIntegrationVerification(null);
+    setBusyAction('workspace-session');
+    setError('');
+    try {
+      await refreshWorkspace();
+      await refreshIntegrationVerification();
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setBusyAction('');
+    }
+  }
+
   async function verifyIntegrations() {
     setBusyAction('verify-integrations');
     setError('');
@@ -1168,6 +1194,18 @@ function WorkspaceApp({ onLeave }) {
                 <MetricCard label="Runs" value={runHistory.length} />
               </section>
               <RuntimeStrip workspace={workspace.workspace?.label || workspaceKey} provider={provider} />
+              <WorkspaceSessionBanner
+                workspace={workspace.workspace}
+                provider={provider}
+                teamConfig={teamConfig}
+                busyAction={busyAction}
+                openPrivatePanel={() => {
+                  requestAnimationFrame(() =>
+                    document.querySelector('#private-access')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+                  );
+                }}
+                leavePrivateWorkspace={leavePrivateWorkspace}
+              />
               <WorkflowOverview steps={workflowSteps} />
 
               <div className="nova-scroll-region">
@@ -1694,6 +1732,50 @@ function RuntimeStrip({ workspace, provider }) {
         {provider.access === 'guarded' ? 'Private access' : 'Public demo'}
       </ToneBadge>
     </div>
+  );
+}
+
+function WorkspaceSessionBanner({ workspace, provider, teamConfig, busyAction, openPrivatePanel, leavePrivateWorkspace }) {
+  const isPrivate = provider.access === 'guarded';
+  const configuredTeams = teamConfig?.teams || [];
+  const teamLabel = workspace?.team?.label || workspace?.label || workspace?.id || 'Private workspace';
+  const guestLabel = workspace?.label || workspace?.id || 'Guest workspace';
+  return (
+    <section className="nova-session-banner" data-mode={isPrivate ? 'private' : 'public'} aria-label="Workspace session mode">
+      <div className="nova-session-main">
+        <span className="nova-session-icon">
+          {isPrivate ? <KeyRound /> : <Database />}
+        </span>
+        <div>
+          <strong>{isPrivate ? `${teamLabel} private mode` : `${guestLabel} public demo`}</strong>
+          <p>
+            {isPrivate
+              ? 'Guarded access is active. Approved tasks can create real Linear/GitHub issues when connectors are configured.'
+              : 'Guest workspaces are isolated and safe. Approved tasks export as packages until a team token unlocks private mode.'}
+          </p>
+        </div>
+      </div>
+      <div className="nova-session-actions">
+        <ToneBadge tone={isPrivate ? 'success' : 'warning'}>
+          {isPrivate ? 'real issue path' : 'package only'}
+        </ToneBadge>
+        {isPrivate ? (
+          <Button variant="secondary" size="sm" onClick={leavePrivateWorkspace} disabled={busyAction === 'workspace-session'}>
+            {busyAction === 'workspace-session' ? (
+              <Loader2 className="spin" data-icon="inline-start" />
+            ) : (
+              <RefreshCw data-icon="inline-start" />
+            )}
+            Leave private
+          </Button>
+        ) : (
+          <Button variant="secondary" size="sm" onClick={openPrivatePanel}>
+            <KeyRound data-icon="inline-start" />
+            {configuredTeams.length ? 'Open team workspace' : 'Configure private mode'}
+          </Button>
+        )}
+      </div>
+    </section>
   );
 }
 
