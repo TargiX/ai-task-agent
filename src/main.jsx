@@ -1225,6 +1225,20 @@ function WorkspaceApp({ onLeave }) {
                 }}
                 leavePrivateWorkspace={leavePrivateWorkspace}
               />
+              <WorkflowCommandCenter
+                idea={idea}
+                prd={prd}
+                counts={counts}
+                exports={exports}
+                provider={provider}
+                exportTarget={exportTarget}
+                activeExportPackage={activeExportPackage}
+                busyAction={busyAction}
+                streamStatus={streamStatus}
+                runAgent={runAgent}
+                updateTaskBatch={updateTaskBatch}
+                prepareExportPackage={prepareExportPackage}
+              />
               <WorkflowOverview steps={workflowSteps} />
 
               <div className="nova-scroll-region">
@@ -1856,6 +1870,189 @@ function MetricCard({ label, value, text = false }) {
       <strong className={text ? 'nova-metric-value text' : 'nova-metric-value'}>{value}</strong>
     </div>
   );
+}
+
+function WorkflowCommandCenter({
+  idea,
+  prd,
+  counts,
+  exports,
+  provider,
+  exportTarget,
+  activeExportPackage,
+  busyAction,
+  streamStatus,
+  runAgent,
+  updateTaskBatch,
+  prepareExportPackage,
+}) {
+  const command = buildWorkflowCommand({
+    idea,
+    prd,
+    counts,
+    exports,
+    provider,
+    exportTarget,
+    activeExportPackage,
+    busyAction,
+    streamStatus,
+  });
+  const CommandIcon = command.icon;
+
+  function jumpTo(selector) {
+    requestAnimationFrame(() => document.querySelector(selector)?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  }
+
+  async function runPrimaryAction() {
+    if (command.action === 'run') return runAgent();
+    if (command.action === 'approve-pending') return updateTaskBatch('approved');
+    if (command.action === 'prepare-package') return prepareExportPackage();
+    if (command.action === 'tasks') return jumpTo('#task-db');
+    if (command.action === 'exports') return jumpTo('#exports');
+    return null;
+  }
+
+  return (
+    <section className="nova-command-center" data-tone={command.tone} aria-label="Next workflow action">
+      <span className="nova-command-icon">
+        <CommandIcon />
+      </span>
+      <div className="nova-command-copy">
+        <ToneBadge tone={command.badgeTone}>{command.stage}</ToneBadge>
+        <strong>{command.title}</strong>
+        <p>{command.detail}</p>
+      </div>
+      <div className="nova-command-actions">
+        <Button onClick={runPrimaryAction} disabled={command.disabled}>
+          {command.loading ? (
+            <Loader2 className="spin" data-icon="inline-start" />
+          ) : (
+            <command.primaryIcon data-icon="inline-start" />
+          )}
+          {command.primaryLabel}
+        </Button>
+        {command.secondary ? (
+          <Button variant="secondary" onClick={() => jumpTo(command.secondary.target)}>
+            <command.secondary.icon data-icon="inline-start" />
+            {command.secondary.label}
+          </Button>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function buildWorkflowCommand({
+  idea,
+  prd,
+  counts,
+  exports,
+  provider,
+  exportTarget,
+  activeExportPackage,
+  busyAction,
+  streamStatus,
+}) {
+  const isBusy = Boolean(busyAction);
+  const hasIdea = Boolean(idea.trim());
+  const hasTasks = counts.total > 0;
+  const isPrivate = provider.access === 'guarded';
+  const exportMode = isPrivate ? 'real issue path' : 'safe package path';
+
+  if (busyAction === 'agent') {
+    return {
+      stage: 'Agent running',
+      title: 'Generating PRD, tasks, and trace',
+      detail: streamStatus ? `Live stream: ${streamStatus}` : 'The planner is creating durable output in this workspace.',
+      icon: Bot,
+      primaryIcon: Loader2,
+      primaryLabel: 'Running',
+      action: 'none',
+      disabled: true,
+      loading: true,
+      tone: 'brand',
+      badgeTone: 'brand',
+    };
+  }
+
+  if (!prd || !hasTasks) {
+    return {
+      stage: 'Draft',
+      title: hasIdea ? 'Ready to generate the product plan' : 'Start with a product idea',
+      detail: 'The agent will produce a PRD, five normalized tasks, and a visible tool-call trace.',
+      icon: Sparkles,
+      primaryIcon: Play,
+      primaryLabel: 'Run agent now',
+      action: 'run',
+      disabled: !hasIdea || isBusy,
+      tone: 'brand',
+      badgeTone: 'information',
+    };
+  }
+
+  if (counts.pending > 0) {
+    return {
+      stage: 'Human approval gate',
+      title: `${counts.pending} task${counts.pending === 1 ? '' : 's'} waiting for review`,
+      detail: `${counts.approved} approved so far. Approve only the work that should move toward ${exportMode}.`,
+      icon: ListChecks,
+      primaryIcon: Check,
+      primaryLabel: 'Approve pending',
+      action: 'approve-pending',
+      disabled: isBusy,
+      tone: 'warning',
+      badgeTone: 'warning',
+      secondary: { label: 'Inspect tasks', target: '#task-db', icon: FileText },
+    };
+  }
+
+  if (!counts.approved) {
+    return {
+      stage: 'Review required',
+      title: 'No approved tasks yet',
+      detail: 'Rejected tasks stay in the workspace, but export opens only after at least one task is approved.',
+      icon: AlertCircle,
+      primaryIcon: ListChecks,
+      primaryLabel: 'Review tasks',
+      action: 'tasks',
+      disabled: false,
+      tone: 'warning',
+      badgeTone: 'warning',
+    };
+  }
+
+  if (activeExportPackage) {
+    return {
+      stage: 'Package ready',
+      title: `${exportTarget} package is ready`,
+      detail: isPrivate
+        ? 'Open the export panel to review the payload before confirming real issue creation.'
+        : 'Download JSON or Markdown from the export panel. Public demo does not create external issues.',
+      icon: Send,
+      primaryIcon: Send,
+      primaryLabel: 'Open export panel',
+      action: 'exports',
+      disabled: false,
+      tone: 'success',
+      badgeTone: 'success',
+    };
+  }
+
+  return {
+    stage: isPrivate ? 'Guarded export' : 'Package export',
+    title: isPrivate ? `Approved tasks can move to ${exportTarget}` : `Prepare a safe ${exportTarget} package`,
+    detail: isPrivate
+      ? 'Real issue creation still requires the explicit confirmation gate in the export panel.'
+      : 'Public demo mode prepares a payload only, so the workflow is safe to show in a portfolio.',
+    icon: Send,
+    primaryIcon: Download,
+    primaryLabel: 'Prepare export package',
+    action: 'prepare-package',
+    disabled: isBusy,
+    tone: isPrivate ? 'success' : 'brand',
+    badgeTone: isPrivate ? 'success' : 'information',
+    secondary: exports.length ? { label: 'View exports', target: '#exports', icon: History } : null,
+  };
 }
 
 function WorkflowOverview({ steps }) {

@@ -1167,6 +1167,87 @@ button:disabled {
   gap: 8px;
 }
 
+.nova-command-center {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 14px;
+  padding: 16px;
+  border-radius: 28px;
+  background: #ffffff;
+}
+
+.nova-command-center[data-tone="brand"] {
+  background: color-mix(in oklch, var(--brand-soft), #ffffff 54%);
+}
+
+.nova-command-center[data-tone="success"] {
+  background: color-mix(in oklch, var(--success-soft), #ffffff 56%);
+}
+
+.nova-command-center[data-tone="warning"] {
+  background: color-mix(in oklch, var(--warning-soft), #ffffff 60%);
+}
+
+.nova-command-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--brand-text);
+}
+
+.nova-command-center[data-tone="success"] .nova-command-icon {
+  color: var(--success);
+}
+
+.nova-command-center[data-tone="warning"] .nova-command-icon {
+  color: var(--warning);
+}
+
+.nova-command-icon svg {
+  width: 21px;
+  height: 21px;
+}
+
+.nova-command-copy {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+
+.nova-command-copy strong {
+  display: block;
+  overflow: hidden;
+  color: var(--foreground);
+  font-size: 17px;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nova-command-copy p {
+  max-width: 780px;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.nova-command-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.nova-command-actions [data-slot="button"][data-variant="secondary"] {
+  background: #ffffff !important;
+}
+
 .nova-flow-strip {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -2975,6 +3056,23 @@ button:disabled {
 
   .nova-session-actions {
     justify-content: flex-start;
+  }
+
+  .nova-command-center {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .nova-command-copy strong {
+    white-space: normal;
+  }
+
+  .nova-command-actions {
+    justify-content: flex-start;
+  }
+
+  .nova-command-actions [data-slot="button"] {
+    width: 100%;
   }
 
   .nova-workspace,
