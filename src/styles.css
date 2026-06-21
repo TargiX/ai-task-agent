@@ -1756,6 +1756,15 @@ button:disabled {
   gap: 6px;
 }
 
+.nova-team-option {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 999px;
+  background: #ffffff;
+}
+
 .nova-access-card [data-slot="card-content"] {
   display: grid;
   gap: 10px;
@@ -2741,6 +2750,15 @@ button:disabled {
 
   .nova-team-list {
     grid-column: auto;
+  }
+
+  .nova-team-option {
+    width: 100%;
+    border-radius: 18px;
+  }
+
+  .nova-team-option [data-slot="button"] {
+    flex: 1 1 auto;
   }
 
   .nova-workspace {

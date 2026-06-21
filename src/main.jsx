@@ -289,6 +289,14 @@ function createGuestWorkspaceKey() {
   return `guest-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function createTeamWorkspaceKey(teamId) {
+  const prefix = normalizeClientWorkspaceKey(teamId);
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
+  }
+  return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 async function readSse(response, onEvent) {
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
@@ -1845,15 +1853,24 @@ function PrivateAccessPanel({
       {teamOptions.length ? (
         <div className="nova-team-list" aria-label="Configured private workspaces">
           {teamOptions.map((team) => (
-            <Button
-              key={team.id}
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setPrivateWorkspaceDraft(team.id)}
-            >
-              {team.label}
-            </Button>
+            <div key={team.id} className="nova-team-option">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setPrivateWorkspaceDraft(team.id)}
+              >
+                {team.label}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setPrivateWorkspaceDraft(createTeamWorkspaceKey(team.id))}
+              >
+                New clean workspace
+              </Button>
+            </div>
           ))}
         </div>
       ) : (
