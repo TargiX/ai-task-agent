@@ -640,6 +640,7 @@ function WorkspaceApp({ onLeave }) {
       }),
     [idea, prd, counts, exports, busyAction]
   );
+  const canRunAgent = Boolean(idea.trim()) && busyAction !== 'agent';
 
   useEffect(() => {
     if (!selectedTask) {
@@ -849,6 +850,13 @@ function WorkspaceApp({ onLeave }) {
   }
 
   async function runAgent() {
+    if (!idea.trim()) {
+      setError('Enter a product idea before running the agent.');
+      requestAnimationFrame(() =>
+        document.querySelector('#product-idea')?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
+      );
+      return;
+    }
     setBusyAction('agent');
     setError('');
     setStreamStatus('Opening live agent stream');
@@ -1174,7 +1182,11 @@ function WorkspaceApp({ onLeave }) {
               <Button variant="ghost" onClick={onLeave}>
                 Landing
               </Button>
-              <Button onClick={runAgent} disabled={busyAction === 'agent'}>
+              <Button
+                onClick={runAgent}
+                disabled={!canRunAgent}
+                title={idea.trim() ? 'Generate PRD and tasks' : 'Enter a product idea before running the agent'}
+              >
                 {busyAction === 'agent' ? (
                   <Loader2 className="spin" data-icon="inline-start" />
                 ) : (
@@ -1322,7 +1334,7 @@ function WorkspaceApp({ onLeave }) {
                         </div>
                       ))}
                     </div>
-                    <Button onClick={runAgent} disabled={busyAction === 'agent' || !idea.trim()}>
+                    <Button onClick={runAgent} disabled={!canRunAgent}>
                       {busyAction === 'agent' ? (
                         <Loader2 className="spin" data-icon="inline-start" />
                       ) : (
