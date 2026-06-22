@@ -209,6 +209,7 @@ const skillStack = [
 ];
 const workspaceStorageKey = 'ai-task-agent.workspaceId';
 const accessTokenStorageKey = 'ai-task-agent.accessToken';
+const agentStreamTimeoutMs = 25000;
 
 function emptyWorkspace() {
   return {
@@ -845,7 +846,9 @@ function WorkspaceApp({ onLeave }) {
     try {
       const streamed = await runAgentStream();
       if (!streamed) {
-        setStreamStatus('Stream unavailable; using JSON fallback');
+        setStreamStatus((current) =>
+          current && current.includes('fallback') ? current : 'Stream unavailable; using JSON fallback',
+        );
         const nextWorkspace = await api('/api/agent/run', {
           method: 'POST',
           body: JSON.stringify({ idea }),
@@ -872,31 +875,44 @@ function WorkspaceApp({ onLeave }) {
   }
 
   async function runAgentStream() {
-    const response = await fetch('/api/agent/stream', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', ...workspaceHeader() },
-      body: JSON.stringify({ idea }),
-    });
-    if (!response.ok || !response.body) return false;
-
-    let completedWorkspace = null;
-    await readSse(response, async (event) => {
-      if (event.type === 'error') throw new Error(event.message || 'Agent stream failed');
-      if (event.message) setStreamStatus(event.message);
-      setWorkspace((current) => {
-        if (event.type === 'complete' && event.workspace) return event.workspace;
-        const next = { ...current };
-        if (event.graph) next.graph = event.graph;
-        if (event.log) next.logs = [...(next.logs || []), event.log];
-        return next;
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), agentStreamTimeoutMs);
+    try {
+      const response = await fetch('/api/agent/stream', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...workspaceHeader() },
+        body: JSON.stringify({ idea }),
+        signal: controller.signal,
       });
-      if (event.type === 'complete' && event.workspace) {
-        completedWorkspace = event.workspace;
-        setSelectedTaskId(event.workspace.tasks[0]?.id || null);
-      }
-    });
+      if (!response.ok || !response.body) return false;
 
-    return Boolean(completedWorkspace);
+      let completedWorkspace = null;
+      await readSse(response, async (event) => {
+        if (event.type === 'error') throw new Error(event.message || 'Agent stream failed');
+        if (event.message) setStreamStatus(event.message);
+        setWorkspace((current) => {
+          if (event.type === 'complete' && event.workspace) return event.workspace;
+          const next = { ...current };
+          if (event.graph) next.graph = event.graph;
+          if (event.log) next.logs = [...(next.logs || []), event.log];
+          return next;
+        });
+        if (event.type === 'complete' && event.workspace) {
+          completedWorkspace = event.workspace;
+          setSelectedTaskId(event.workspace.tasks[0]?.id || null);
+        }
+      });
+
+      return Boolean(completedWorkspace);
+    } catch (requestError) {
+      if (requestError.name === 'AbortError') {
+        setStreamStatus('Live stream timed out; using JSON fallback');
+        return false;
+      }
+      throw requestError;
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
   }
 
   async function patchTask(id, patch) {
@@ -1163,12 +1179,26 @@ function WorkspaceApp({ onLeave }) {
             <GuideSurface
               provider={provider}
               counts={counts}
+              exports={exports}
+              activeExportPackage={activeExportPackage}
               runHistory={runHistory}
               teamConfig={teamConfig}
               onStart={() => {
                 setActiveView('workspace');
                 requestAnimationFrame(() =>
                   document.querySelector('#workspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+                );
+              }}
+              onReview={() => {
+                setActiveView('workspace');
+                requestAnimationFrame(() =>
+                  document.querySelector('#task-db')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+                );
+              }}
+              onExport={() => {
+                setActiveView('workspace');
+                requestAnimationFrame(() =>
+                  document.querySelector('#exports')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
                 );
               }}
               onPrivate={() => {
@@ -1446,8 +1476,26 @@ function getActiveViewMeta(activeView, prd) {
   };
 }
 
-function GuideSurface({ provider, counts, runHistory, teamConfig, onStart, onPrivate }) {
+function GuideSurface({
+  provider,
+  counts,
+  exports,
+  activeExportPackage,
+  runHistory,
+  teamConfig,
+  onStart,
+  onReview,
+  onExport,
+  onPrivate,
+}) {
   const reviewed = counts.approved + counts.rejected;
+  const guideChecklist = buildGuideChecklist({
+    provider,
+    counts,
+    runHistory,
+    exports,
+    activeExportPackage,
+  });
   return (
     <section className="nova-guide-view" id="guide">
       <div className="nova-guide-hero">
@@ -1469,6 +1517,50 @@ function GuideSurface({ provider, counts, runHistory, teamConfig, onStart, onPri
           </Button>
         </div>
       </div>
+
+      <section className="nova-guide-now" aria-label="Current workflow guidance">
+        <div className="nova-guide-now-head">
+          <div>
+            <strong>Current workspace checklist</strong>
+            <p>The guide follows the real state of this workspace, so the next action is visible without reading the whole UI.</p>
+          </div>
+          <ToneBadge tone={provider.access === 'guarded' ? 'success' : 'warning'}>
+            {provider.access === 'guarded' ? 'Private mode' : 'Public demo'}
+          </ToneBadge>
+        </div>
+        <div className="nova-guide-checks">
+          {guideChecklist.map((item) => {
+            const ItemIcon = item.icon;
+            return (
+              <article key={item.id} data-state={item.state}>
+                <span>
+                  <ItemIcon />
+                </span>
+                <div>
+                  <small>{item.label}</small>
+                  <strong>{item.value}</strong>
+                  <p>{item.detail}</p>
+                </div>
+                <ToneBadge tone={item.tone}>{item.badge || item.state}</ToneBadge>
+              </article>
+            );
+          })}
+        </div>
+        <div className="nova-guide-next-actions">
+          <Button onClick={onStart}>
+            <Play data-icon="inline-start" />
+            {counts.total ? 'Open run' : 'Start run'}
+          </Button>
+          <Button variant="secondary" onClick={onReview} disabled={!counts.total}>
+            <ListChecks data-icon="inline-start" />
+            Review tasks
+          </Button>
+          <Button variant="secondary" onClick={onExport} disabled={!counts.approved}>
+            <Send data-icon="inline-start" />
+            Export gate
+          </Button>
+        </div>
+      </section>
 
       <div className="nova-guide-layout">
         <section className="nova-guide-steps" aria-label="How it works">
@@ -1549,6 +1641,70 @@ function GuideSurface({ provider, counts, runHistory, teamConfig, onStart, onPri
       </section>
     </section>
   );
+}
+
+function buildGuideChecklist({ provider, counts, runHistory, exports, activeExportPackage }) {
+  const isPrivate = provider.access === 'guarded';
+  const hasRun = runHistory.length > 0 || counts.total > 0;
+  const reviewed = counts.approved + counts.rejected;
+  const hasPackage = Boolean(activeExportPackage);
+  const hasExport = exports.length > 0;
+  return [
+    {
+      id: 'workspace',
+      label: 'Workspace',
+      value: hasRun ? 'Run history exists' : 'Fresh workspace',
+      detail: hasRun
+        ? 'This workspace has durable run state and can be resumed from history.'
+        : 'Start with an idea to create the first PRD, task set, and trace.',
+      state: hasRun ? 'ready' : 'next',
+      badge: hasRun ? 'ready' : 'next',
+      tone: hasRun ? 'success' : 'information',
+      icon: Database,
+    },
+    {
+      id: 'review',
+      label: 'Human review',
+      value: counts.total ? `${reviewed}/${counts.total} reviewed` : 'Waiting for tasks',
+      detail: counts.pending
+        ? `${counts.pending} pending task${counts.pending === 1 ? '' : 's'} still need approve/reject.`
+        : counts.total
+          ? 'All generated tasks have passed the human decision gate.'
+          : 'The review queue appears after the agent creates tasks.',
+      state: counts.total && !counts.pending ? 'ready' : counts.total ? 'next' : 'waiting',
+      badge: counts.total && !counts.pending ? 'ready' : counts.total ? 'next' : 'wait',
+      tone: counts.total && !counts.pending ? 'success' : counts.total ? 'warning' : 'neutral',
+      icon: ListChecks,
+    },
+    {
+      id: 'export',
+      label: 'Export package',
+      value: hasExport ? 'Export recorded' : hasPackage ? 'Package ready' : counts.approved ? 'Ready to package' : 'Approval required',
+      detail: hasExport
+        ? 'The latest approved task payload is recorded in export history.'
+        : hasPackage
+          ? 'JSON/Markdown is ready for download or guarded issue creation.'
+          : counts.approved
+            ? 'Prepare the package from approved tasks before sending anything out.'
+            : 'Approve at least one task before the export gate opens.',
+      state: hasExport || hasPackage ? 'ready' : counts.approved ? 'next' : 'blocked',
+      badge: hasExport || hasPackage ? 'ready' : counts.approved ? 'next' : 'gated',
+      tone: hasExport || hasPackage ? 'success' : counts.approved ? 'information' : 'warning',
+      icon: Send,
+    },
+    {
+      id: 'mode',
+      label: 'Team mode',
+      value: isPrivate ? 'Real issue path' : 'Package-only demo',
+      detail: isPrivate
+        ? 'Guarded access is active; real issue creation still requires explicit confirmation.'
+        : 'Public demo is safe for portfolio viewing and will not create external issues.',
+      state: isPrivate ? 'ready' : 'safe',
+      badge: isPrivate ? 'ready' : 'safe',
+      tone: isPrivate ? 'success' : 'warning',
+      icon: isPrivate ? KeyRound : Github,
+    },
+  ];
 }
 
 function TeamSetupSurface({

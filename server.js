@@ -11,6 +11,7 @@ import { providerStatus } from './lib/domain.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 5173);
 const HOST = process.env.HOST || '127.0.0.1';
+const HMR_PORT = Number(process.env.HMR_PORT || PORT + 10000);
 
 async function readJson(req) {
   const chunks = [];
@@ -85,7 +86,7 @@ async function main() {
     process.env.NODE_ENV === 'production'
       ? null
       : await createViteServer({
-          server: { middlewareMode: true, hmr: false },
+          server: { middlewareMode: true, hmr: { host: HOST, port: HMR_PORT, clientPort: HMR_PORT } },
           appType: 'spa',
         });
 

@@ -1274,6 +1274,120 @@ button:disabled {
   justify-content: flex-end;
 }
 
+.nova-guide-now {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 28px;
+  background: #ffffff;
+}
+
+.nova-guide-now-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.nova-guide-now-head strong {
+  display: block;
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+.nova-guide-now-head p {
+  max-width: 720px;
+  margin: 5px 0 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.nova-guide-checks {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.nova-guide-checks article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  min-width: 0;
+  padding: 14px;
+  border-radius: 22px;
+  background: var(--surface-soft);
+}
+
+.nova-guide-checks article > span {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--brand-text);
+}
+
+.nova-guide-checks article[data-state="ready"] > span {
+  color: var(--success);
+}
+
+.nova-guide-checks article[data-state="blocked"] > span {
+  color: var(--warning);
+}
+
+.nova-guide-checks article > span svg {
+  width: 17px;
+  height: 17px;
+}
+
+.nova-guide-checks article > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.nova-guide-checks small {
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nova-guide-checks strong {
+  overflow: hidden;
+  color: var(--foreground);
+  font-size: 13px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nova-guide-checks p {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.nova-guide-checks [data-slot="badge"] {
+  justify-self: end;
+}
+
+.nova-guide-next-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .nova-guide-layout {
   grid-template-columns: minmax(0, 1fr) 340px;
   align-items: start;
@@ -2686,6 +2800,10 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
+  .nova-guide-checks {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .nova-team-list {
     grid-column: auto;
   }
@@ -2980,6 +3098,7 @@ button:disabled {
   }
 
   .nova-guide-hero,
+  .nova-guide-now-head,
   .nova-guide-modes,
   .nova-team-setup-hero {
     grid-template-columns: 1fr;
@@ -2988,6 +3107,28 @@ button:disabled {
   .nova-guide-actions,
   .nova-team-setup-actions {
     justify-content: flex-start;
+  }
+
+  .nova-guide-now-head {
+    display: grid;
+  }
+
+  .nova-guide-checks {
+    grid-template-columns: 1fr;
+  }
+
+  .nova-guide-checks article {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .nova-guide-checks strong,
+  .nova-guide-checks small {
+    white-space: normal;
+  }
+
+  .nova-guide-checks [data-slot="badge"] {
+    grid-column: 2;
+    justify-self: start;
   }
 
   .nova-team-setup-hero {
