@@ -299,6 +299,69 @@ function createTeamWorkspaceKey(teamId) {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function findConfiguredTeamForWorkspace(workspaceId, teams = []) {
+  const key = normalizeClientWorkspaceKey(workspaceId);
+  return teams.find((team) => {
+    const teamId = normalizeClientWorkspaceKey(team.id);
+    return key === teamId || key.startsWith(`${teamId}-`);
+  });
+}
+
+function parseHashRoute(hash = '') {
+  const raw = hash.startsWith('#') ? hash.slice(1) : hash;
+  const [route = '', query = ''] = raw.split('?');
+  return {
+    route,
+    params: new URLSearchParams(query),
+  };
+}
+
+function workspaceRequestFromLocation(location = window.location) {
+  const hashRoute = parseHashRoute(location.hash);
+  const searchParams = new URLSearchParams(location.search);
+  const requested =
+    hashRoute.params.get('workspace') ||
+    hashRoute.params.get('team') ||
+    searchParams.get('workspace') ||
+    searchParams.get('team') ||
+    '';
+  return requested ? normalizeClientWorkspaceKey(requested) : '';
+}
+
+function isAppLocation(location = window.location) {
+  const hashRoute = parseHashRoute(location.hash);
+  return hashRoute.route === 'app' || Boolean(workspaceRequestFromLocation(location));
+}
+
+function consumeWorkspaceRouteRequest() {
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') return '';
+  const requested = workspaceRequestFromLocation(window.location);
+  if (requested) localStorage.setItem(workspaceStorageKey, requested);
+  return requested;
+}
+
+function workspaceLinkFor(workspaceId) {
+  const key = normalizeClientWorkspaceKey(workspaceId);
+  const url = new URL(window.location.href);
+  url.searchParams.delete('workspace');
+  url.searchParams.delete('team');
+  url.hash = `app?workspace=${encodeURIComponent(key)}`;
+  return url.toString();
+}
+
+function replaceAppWorkspaceUrl(workspaceId) {
+  if (typeof window === 'undefined') return;
+  window.history.replaceState(null, '', workspaceLinkFor(workspaceId));
+}
+
+function landingUrl() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete('workspace');
+  url.searchParams.delete('team');
+  url.hash = '';
+  return `${url.pathname}${url.search}`;
+}
+
 function copyTextFallback(text) {
   const textarea = document.createElement('textarea');
   textarea.value = text;
@@ -343,9 +406,10 @@ function parseSseBlock(block) {
 }
 
 function App() {
+  const [routeWorkspaceKey, setRouteWorkspaceKey] = useState(() => consumeWorkspaceRouteRequest());
   const [enteredApp, setEnteredApp] = useState(() => {
     if (typeof window === 'undefined') return false;
-    return window.location.hash === '#app';
+    return isAppLocation(window.location);
   });
 
   useEffect(() => {
@@ -358,7 +422,9 @@ function App() {
 
   useEffect(() => {
     function syncRouteMode() {
-      setEnteredApp(window.location.hash === '#app');
+      const requestedWorkspace = consumeWorkspaceRouteRequest();
+      if (requestedWorkspace) setRouteWorkspaceKey(requestedWorkspace);
+      setEnteredApp(isAppLocation(window.location));
     }
     window.addEventListener('hashchange', syncRouteMode);
     window.addEventListener('popstate', syncRouteMode);
@@ -369,17 +435,17 @@ function App() {
   }, []);
 
   function enterDemo() {
-    if (window.location.hash !== '#app') window.history.pushState(null, '', '#app');
+    if (parseHashRoute(window.location.hash).route !== 'app') window.history.pushState(null, '', '#app');
     setEnteredApp(true);
   }
 
   function leaveDemo() {
-    window.history.pushState(null, '', window.location.pathname + window.location.search);
+    window.history.pushState(null, '', landingUrl());
     setEnteredApp(false);
   }
 
   if (!enteredApp) return <LandingPage onEnter={enterDemo} />;
-  return <WorkspaceApp onLeave={leaveDemo} />;
+  return <WorkspaceApp onLeave={leaveDemo} routeWorkspaceKey={routeWorkspaceKey} />;
 }
 
 function LandingPage({ onEnter }) {
@@ -583,7 +649,7 @@ function LandingPage({ onEnter }) {
   );
 }
 
-function WorkspaceApp({ onLeave }) {
+function WorkspaceApp({ onLeave, routeWorkspaceKey }) {
   const [activeView, setActiveView] = useState('workspace');
   const [idea, setIdea] = useState(sampleIdea);
   const [workspace, setWorkspace] = useState(emptyWorkspace);
@@ -606,6 +672,7 @@ function WorkspaceApp({ onLeave }) {
   const [accessTokenDraft, setAccessTokenDraft] = useState(currentAccessToken());
   const [privateWorkspaceDraft, setPrivateWorkspaceDraft] = useState('');
   const [privateTokenDraft, setPrivateTokenDraft] = useState('');
+  const [copiedWorkspaceLink, setCopiedWorkspaceLink] = useState(false);
 
   const { prd, tasks, logs, exports, provider, graph, runHistory = [] } = workspace;
 
@@ -616,6 +683,28 @@ function WorkspaceApp({ onLeave }) {
     refreshIntegrationVerification();
     refreshTeamConfig();
   }, []);
+
+  useEffect(() => {
+    const nextKey = normalizeClientWorkspaceKey(routeWorkspaceKey);
+    if (!routeWorkspaceKey || nextKey === workspaceKey) return;
+    setWorkspaceKey(nextKey);
+    setWorkspaceDraft(nextKey);
+    setPrivateWorkspaceDraft(nextKey);
+    setWorkspace(emptyWorkspace());
+    setSelectedTaskId(null);
+    setExportPackage(null);
+    setSetupVerification(null);
+    setIntegrationVerification(null);
+    refreshWorkspace();
+    refreshIntegrationVerification();
+  }, [routeWorkspaceKey]);
+
+  useEffect(() => {
+    const matchedTeam = findConfiguredTeamForWorkspace(workspaceKey, teamConfig?.teams || []);
+    if (!matchedTeam || accessTokenDraft.trim()) return;
+    setPrivateWorkspaceDraft((current) => current || workspaceKey);
+    setActiveView('setup');
+  }, [teamConfig, workspaceKey, accessTokenDraft]);
 
   const counts = useMemo(() => {
     const approved = tasks.filter((task) => task.status === 'approved').length;
@@ -687,6 +776,7 @@ function WorkspaceApp({ onLeave }) {
   async function switchWorkspace() {
     const nextKey = normalizeClientWorkspaceKey(workspaceDraft);
     localStorage.setItem(workspaceStorageKey, nextKey);
+    replaceAppWorkspaceUrl(nextKey);
     setWorkspaceKey(nextKey);
     setWorkspaceDraft(nextKey);
     setWorkspace(emptyWorkspace());
@@ -761,6 +851,7 @@ function WorkspaceApp({ onLeave }) {
       });
       localStorage.setItem(workspaceStorageKey, session.workspace.id);
       localStorage.setItem(accessTokenStorageKey, token);
+      replaceAppWorkspaceUrl(session.workspace.id);
       setWorkspaceKey(session.workspace.id);
       setWorkspaceDraft(session.workspace.id);
       setAccessTokenDraft(token);
@@ -782,6 +873,7 @@ function WorkspaceApp({ onLeave }) {
     const guestKey = createGuestWorkspaceKey();
     localStorage.setItem(workspaceStorageKey, guestKey);
     localStorage.removeItem(accessTokenStorageKey);
+    replaceAppWorkspaceUrl(guestKey);
     setWorkspaceKey(guestKey);
     setWorkspaceDraft(guestKey);
     setAccessTokenDraft('');
@@ -1017,6 +1109,22 @@ function WorkspaceApp({ onLeave }) {
 
   function loadExampleIdea(nextIdea) {
     setIdea(nextIdea);
+  }
+
+  async function copyWorkspaceLink() {
+    const workspaceId = workspace.workspace?.id || workspaceKey;
+    const link = workspaceLinkFor(workspaceId);
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(link);
+      } else {
+        copyTextFallback(link);
+      }
+    } catch {
+      copyTextFallback(link);
+    }
+    setCopiedWorkspaceLink(true);
+    window.setTimeout(() => setCopiedWorkspaceLink(false), 1800);
   }
 
   async function selectRun(runId) {
@@ -1275,6 +1383,8 @@ function WorkspaceApp({ onLeave }) {
                 provider={provider}
                 teamConfig={teamConfig}
                 busyAction={busyAction}
+                copiedWorkspaceLink={copiedWorkspaceLink}
+                copyWorkspaceLink={copyWorkspaceLink}
                 openPrivatePanel={() => {
                   requestAnimationFrame(() =>
                     document.querySelector('#private-access')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
@@ -2343,6 +2453,8 @@ function WorkspaceSessionBanner({
   provider,
   teamConfig,
   busyAction,
+  copiedWorkspaceLink,
+  copyWorkspaceLink,
   openPrivatePanel,
   startFreshGuestWorkspace,
   leavePrivateWorkspace,
@@ -2370,6 +2482,14 @@ function WorkspaceSessionBanner({
         <ToneBadge tone={isPrivate ? 'success' : 'warning'}>
           {isPrivate ? 'real issue path' : 'package only'}
         </ToneBadge>
+        <Button variant="secondary" size="sm" onClick={copyWorkspaceLink}>
+          {copiedWorkspaceLink ? (
+            <Check data-icon="inline-start" />
+          ) : (
+            <Copy data-icon="inline-start" />
+          )}
+          {copiedWorkspaceLink ? 'Copied' : 'Copy link'}
+        </Button>
         {isPrivate ? (
           <Button variant="secondary" size="sm" onClick={leavePrivateWorkspace} disabled={busyAction === 'workspace-session'}>
             {busyAction === 'workspace-session' ? (
