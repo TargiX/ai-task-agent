@@ -769,7 +769,7 @@ function WorkspaceApp({ onLeave }) {
     }
   }
 
-  async function leavePrivateWorkspace() {
+  async function startFreshGuestWorkspace() {
     const guestKey = createGuestWorkspaceKey();
     localStorage.setItem(workspaceStorageKey, guestKey);
     localStorage.removeItem(accessTokenStorageKey);
@@ -778,6 +778,7 @@ function WorkspaceApp({ onLeave }) {
     setAccessTokenDraft('');
     setPrivateWorkspaceDraft('');
     setPrivateTokenDraft('');
+    setIdea(sampleIdea);
     setWorkspace(emptyWorkspace());
     setSelectedTaskId(null);
     setExportPackage(null);
@@ -793,6 +794,10 @@ function WorkspaceApp({ onLeave }) {
     } finally {
       setBusyAction('');
     }
+  }
+
+  async function leavePrivateWorkspace() {
+    await startFreshGuestWorkspace();
   }
 
   async function verifyIntegrations() {
@@ -1243,6 +1248,7 @@ function WorkspaceApp({ onLeave }) {
                     document.querySelector('#private-access')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
                   );
                 }}
+                startFreshGuestWorkspace={startFreshGuestWorkspace}
                 leavePrivateWorkspace={leavePrivateWorkspace}
               />
               <WorkflowCommandCenter
@@ -2300,7 +2306,15 @@ function RuntimeStrip({ workspace, provider }) {
   );
 }
 
-function WorkspaceSessionBanner({ workspace, provider, teamConfig, busyAction, openPrivatePanel, leavePrivateWorkspace }) {
+function WorkspaceSessionBanner({
+  workspace,
+  provider,
+  teamConfig,
+  busyAction,
+  openPrivatePanel,
+  startFreshGuestWorkspace,
+  leavePrivateWorkspace,
+}) {
   const isPrivate = provider.access === 'guarded';
   const configuredTeams = teamConfig?.teams || [];
   const teamLabel = workspace?.team?.label || workspace?.label || workspace?.id || 'Private workspace';
@@ -2334,10 +2348,25 @@ function WorkspaceSessionBanner({ workspace, provider, teamConfig, busyAction, o
             Leave private
           </Button>
         ) : (
-          <Button variant="secondary" size="sm" onClick={openPrivatePanel}>
-            <KeyRound data-icon="inline-start" />
-            {configuredTeams.length ? 'Open team workspace' : 'Configure private mode'}
-          </Button>
+          <>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={startFreshGuestWorkspace}
+              disabled={busyAction === 'workspace-session'}
+            >
+              {busyAction === 'workspace-session' ? (
+                <Loader2 className="spin" data-icon="inline-start" />
+              ) : (
+                <RefreshCw data-icon="inline-start" />
+              )}
+              New guest
+            </Button>
+            <Button variant="secondary" size="sm" onClick={openPrivatePanel}>
+              <KeyRound data-icon="inline-start" />
+              {configuredTeams.length ? 'Open team workspace' : 'Configure private mode'}
+            </Button>
+          </>
         )}
       </div>
     </section>
