@@ -36,6 +36,7 @@ import {
   CheckCircle2,
   ChevronDown,
   CircleDot,
+  Copy,
   Database,
   Download,
   FileText,
@@ -295,6 +296,18 @@ function createTeamWorkspaceKey(teamId) {
     return `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
   }
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function copyTextFallback(text) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.top = '-9999px';
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand('copy');
+  document.body.removeChild(textarea);
 }
 
 async function readSse(response, onEvent) {
@@ -2817,6 +2830,7 @@ function ExportPanel({
   exports,
 }) {
   const [confirmingIssueCreation, setConfirmingIssueCreation] = useState(false);
+  const [copiedPackage, setCopiedPackage] = useState(false);
   const targetKey = exportTarget.toLowerCase();
   const targetIntegration = integrationVerification?.providers?.[targetKey];
   const hasApprovedTasks = approvedCount > 0;
@@ -2833,12 +2847,37 @@ function ExportPanel({
     setConfirmingIssueCreation(false);
   }, [exportTarget, exportPackage?.status, exportMode.canCreateIssues, approvedCount]);
 
+  useEffect(() => {
+    setCopiedPackage(false);
+  }, [exportTarget, exportPackage?.status, packageFormat]);
+
   function handleExportClick() {
     if (exportMode.canCreateIssues && !confirmingIssueCreation) {
       setConfirmingIssueCreation(true);
       return;
     }
     exportIssues();
+  }
+
+  async function copyExportPackage() {
+    if (!exportPackage) return;
+    const content =
+      packageFormat === 'markdown'
+        ? exportPackage.markdown
+        : JSON.stringify(exportPackage.payload, null, 2);
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(content);
+      } else {
+        copyTextFallback(content);
+      }
+      setCopiedPackage(true);
+      window.setTimeout(() => setCopiedPackage(false), 1600);
+    } catch {
+      copyTextFallback(content);
+      setCopiedPackage(true);
+      window.setTimeout(() => setCopiedPackage(false), 1600);
+    }
   }
 
   return (
@@ -2966,6 +3005,14 @@ function ExportPanel({
           >
             <Download data-icon="inline-start" />
             Download
+          </Button>
+          <Button
+            variant="secondary"
+            disabled={!exportPackage || isPackaging}
+            onClick={copyExportPackage}
+          >
+            {copiedPackage ? <Check data-icon="inline-start" /> : <Copy data-icon="inline-start" />}
+            {copiedPackage ? 'Copied' : 'Copy'}
           </Button>
         </div>
         {exportMode.canCreateIssues && confirmingIssueCreation ? (
