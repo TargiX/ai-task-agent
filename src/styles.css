@@ -111,7 +111,7 @@ button:disabled {
   flex-direction: column;
   min-height: 100vh;
   padding: 26px;
-  background: var(--bg);
+  background: linear-gradient(180deg, #ffffff 0 1080px, var(--bg) 1080px 100%);
 }
 
 .nova-landing-nav,
@@ -150,9 +150,9 @@ button:disabled {
 
 .nova-landing-hero {
   display: grid;
-  gap: 18px;
-  min-height: 760px;
-  padding: 46px 24px 18px;
+  gap: 10px;
+  min-height: 790px;
+  padding: 42px 24px 18px;
   overflow: visible;
 }
 
@@ -163,19 +163,19 @@ button:disabled {
   flex-direction: column;
   align-items: center;
   justify-content: start;
-  gap: 18px;
+  gap: 20px;
   min-width: 0;
-  max-width: 880px;
+  max-width: 960px;
   margin: 0 auto;
   text-align: center;
 }
 
 .nova-landing-copy h1 {
-  max-width: 980px;
+  max-width: 1060px;
   margin: 0;
-  font-size: 70px;
-  font-weight: 780;
-  line-height: 0.92;
+  font-size: 82px;
+  font-weight: 800;
+  line-height: 0.9;
   letter-spacing: 0;
 }
 
@@ -209,8 +209,8 @@ button:disabled {
 .nova-agent-stage {
   position: relative;
   min-width: 0;
-  min-height: 520px;
-  margin-top: -2px;
+  min-height: 548px;
+  margin-top: -10px;
   overflow: hidden;
   border-radius: 0;
   background: transparent;
@@ -218,11 +218,9 @@ button:disabled {
 
 .nova-agent-stage::before {
   position: absolute;
-  inset: -20px 0 -10px;
+  inset: -10px 0 -8px;
   background:
-    linear-gradient(180deg, var(--bg) 0%, rgba(240, 240, 240, 0.08) 24%, rgba(240, 240, 240, 0.82) 100%),
-    radial-gradient(ellipse at 15% 45%, rgba(37, 99, 235, 0.12), transparent 36%),
-    radial-gradient(ellipse at 85% 52%, rgba(111, 66, 193, 0.1), transparent 34%);
+    linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0.72) 76%, rgba(255, 255, 255, 0) 100%);
   content: "";
   pointer-events: none;
 }
@@ -230,39 +228,15 @@ button:disabled {
 .nova-agent-machine {
   position: absolute;
   inset: 50% auto auto 50%;
-  width: min(1270px, 102%);
+  width: min(1450px, 116%);
   max-width: none;
-  filter: drop-shadow(0 38px 60px rgba(17, 24, 39, 0.11));
-  -webkit-mask-image: radial-gradient(ellipse at center, #000 56%, rgba(0, 0, 0, 0.9) 67%, transparent 86%);
-  mask-image: radial-gradient(ellipse at center, #000 56%, rgba(0, 0, 0, 0.9) 67%, transparent 86%);
-  transform: translate(-50%, -43%);
+  filter: drop-shadow(0 42px 70px rgba(17, 24, 39, 0.1));
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 64%, rgba(0, 0, 0, 0.92) 74%, transparent 91%);
+  mask-image: radial-gradient(ellipse at center, #000 64%, rgba(0, 0, 0, 0.92) 74%, transparent 91%);
+  transform: translate(-50%, -47%);
   user-select: none;
 }
 
-.nova-stage-panel {
-  position: absolute;
-  z-index: 1;
-  display: grid;
-  gap: 10px;
-  width: min(300px, 28vw);
-  padding: 15px;
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.78);
-  box-shadow: 0 18px 50px rgba(16, 24, 40, 0.08);
-  backdrop-filter: blur(16px);
-}
-
-.nova-stage-panel-input {
-  top: 34px;
-  left: 34px;
-}
-
-.nova-stage-panel-export {
-  right: 34px;
-  bottom: 80px;
-}
-
-.nova-stage-panel span,
 .nova-preview-composer span,
 .nova-preview-section-head span {
   color: var(--foreground);
@@ -270,59 +244,21 @@ button:disabled {
   font-weight: 760;
 }
 
-.nova-stage-panel p {
-  margin: 0;
-  color: var(--muted-foreground);
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.nova-stage-panel small {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--muted-foreground);
-  font-size: 11px;
-}
-
-.nova-stage-panel svg {
-  width: 15px;
-  height: 15px;
-}
-
-.nova-stage-panel ul {
-  display: grid;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.nova-stage-panel li {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--foreground);
-  font-size: 12px;
-}
-
-.nova-stage-panel li svg {
-  color: var(--success);
-}
-
 .nova-agent-rail {
   position: absolute;
   z-index: 2;
-  right: 24px;
-  bottom: 22px;
-  left: 24px;
+  bottom: 24px;
+  left: 50%;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
+  width: min(1050px, calc(100% - 48px));
   padding: 8px;
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(16px);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.68);
+  box-shadow: 0 18px 55px rgba(17, 24, 39, 0.07);
+  transform: translateX(-50%);
+  backdrop-filter: blur(18px);
 }
 
 .nova-agent-rail-step {
@@ -330,9 +266,9 @@ button:disabled {
   align-items: center;
   gap: 9px;
   min-width: 0;
-  padding: 9px;
-  border-radius: 17px;
-  background: rgba(248, 248, 248, 0.9);
+  padding: 8px 11px 8px 8px;
+  border-radius: 999px;
+  background: transparent;
 }
 
 .nova-agent-rail-step > span {
@@ -391,7 +327,9 @@ button:disabled {
 .nova-landing-signal-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: 18px;
+  width: min(920px, 100%);
+  margin: -10px auto 0;
 }
 
 .nova-landing-signal-row > div {
@@ -400,16 +338,16 @@ button:disabled {
   column-gap: 11px;
   row-gap: 2px;
   min-width: 0;
-  padding: 14px 16px;
-  border-radius: 22px;
-  background: var(--surface-soft);
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .nova-landing-signal-row svg {
   grid-row: span 2;
   width: 22px;
   height: 22px;
-  color: var(--brand-text);
+  color: var(--accent);
 }
 
 .nova-landing-signal-row span {
@@ -2874,6 +2812,8 @@ button:disabled {
     grid-template-columns: 1fr;
     padding: 0;
     background: transparent;
+    box-shadow: none;
+    transform: none;
     backdrop-filter: none;
   }
 

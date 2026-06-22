@@ -418,40 +418,9 @@ function LandingPage({ onEnter }) {
         <div className="nova-agent-stage" id="demo" aria-label="AI agent workflow preview">
           <img
             className="nova-agent-machine"
-            src="/assets/agent-flow-machine.png"
-            alt="Glass workflow machine connecting idea capture, PRD generation, task planning, review, and export"
+            src="/assets/agent-workflow-orbit.png"
+            alt="Abstract glass workflow engine connecting idea capture, PRD generation, task planning, review, and export"
           />
-
-          <div className="nova-stage-panel nova-stage-panel-input">
-            <span>Product idea</span>
-            <p>A lightweight customer feedback portal for B2B SaaS teams.</p>
-            <small>
-              <Bot />
-              OpenRouter planner
-            </small>
-          </div>
-
-          <div className="nova-stage-panel nova-stage-panel-export">
-            <span>Issue package</span>
-            <ul>
-              <li>
-                <CheckCircle2 />
-                PRD markdown
-              </li>
-              <li>
-                <CheckCircle2 />
-                Approved tasks
-              </li>
-              <li>
-                <CheckCircle2 />
-                Tool-call trace
-              </li>
-            </ul>
-            <small>
-              <Github />
-              Linear / GitHub ready
-            </small>
-          </div>
 
           <section className="nova-agent-rail" aria-label="Agent progress">
             {landingProgress.map((step, index) => {
