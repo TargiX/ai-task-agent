@@ -90,9 +90,19 @@
 body {
   margin: 0;
   min-width: 320px;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
+  overflow-x: hidden;
   background: var(--bg);
+}
+
+body.nova-landing-mode {
+  height: auto;
+  overflow-y: auto;
+}
+
+body.nova-app-mode {
+  height: 100dvh;
+  overflow: hidden;
 }
 
 button,
@@ -759,7 +769,7 @@ button:disabled {
   display: grid;
   grid-template-columns: 248px minmax(0, 1fr);
   width: calc(100vw - 20px);
-  height: calc(100vh - 20px);
+  height: calc(100dvh - 20px);
   min-height: 0;
   overflow: hidden;
   border-radius: 36px;
@@ -2838,7 +2848,7 @@ button:disabled {
 
 @media (max-width: 860px) {
   body {
-    height: 100dvh;
+    min-height: 100dvh;
   }
 
   .nova-landing-shell {

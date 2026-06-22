@@ -349,6 +349,14 @@ function App() {
   });
 
   useEffect(() => {
+    document.body.classList.toggle('nova-app-mode', enteredApp);
+    document.body.classList.toggle('nova-landing-mode', !enteredApp);
+    return () => {
+      document.body.classList.remove('nova-app-mode', 'nova-landing-mode');
+    };
+  }, [enteredApp]);
+
+  useEffect(() => {
     function syncRouteMode() {
       setEnteredApp(window.location.hash === '#app');
     }
