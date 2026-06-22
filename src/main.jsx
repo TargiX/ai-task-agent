@@ -779,7 +779,19 @@ function WorkspaceApp({ onLeave }) {
     setPrivateWorkspaceDraft('');
     setPrivateTokenDraft('');
     setIdea(sampleIdea);
-    setWorkspace(emptyWorkspace());
+    setWorkspace((current) => ({
+      ...emptyWorkspace(),
+      workspace: {
+        id: guestKey,
+        label: guestKey,
+        access: 'demo-open',
+        team: null,
+      },
+      provider: {
+        ...(current.provider || emptyWorkspace().provider),
+        access: 'demo-open',
+      },
+    }));
     setSelectedTaskId(null);
     setExportPackage(null);
     setSetupVerification(null);
