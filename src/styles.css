@@ -120,16 +120,19 @@ button:disabled {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  padding: 26px;
-  background: linear-gradient(180deg, #ffffff 0 1080px, var(--bg) 1080px 100%);
+  padding: 26px 0;
+  background: #ffffff;
 }
 
 .nova-landing-nav,
 .nova-landing-hero,
-.nova-landing-system,
 .nova-landing-proof {
-  width: min(1420px, 100%);
+  width: min(1420px, calc(100% - 52px));
   margin: 0 auto;
+}
+
+.nova-landing-system {
+  width: 100%;
 }
 
 .nova-landing-nav {
@@ -160,9 +163,8 @@ button:disabled {
 
 .nova-landing-hero {
   display: grid;
-  gap: 10px;
-  min-height: 790px;
-  padding: 42px 24px 18px;
+  gap: 22px;
+  padding: 42px 0 54px;
   overflow: visible;
 }
 
@@ -218,9 +220,12 @@ button:disabled {
 
 .nova-agent-stage {
   position: relative;
+  left: 50%;
+  width: 100vw;
   min-width: 0;
-  min-height: 548px;
-  margin-top: -10px;
+  min-height: 575px;
+  margin-top: 2px;
+  margin-left: -50vw;
   overflow: hidden;
   border-radius: 0;
   background: transparent;
@@ -228,9 +233,9 @@ button:disabled {
 
 .nova-agent-stage::before {
   position: absolute;
-  inset: -10px 0 -8px;
+  inset: -2px 0;
   background:
-    linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0.72) 76%, rgba(255, 255, 255, 0) 100%);
+    linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0) 18%, rgba(255, 255, 255, 0.38) 82%, #ffffff 100%);
   content: "";
   pointer-events: none;
 }
@@ -238,12 +243,12 @@ button:disabled {
 .nova-agent-machine {
   position: absolute;
   inset: 50% auto auto 50%;
-  width: min(1450px, 116%);
+  width: min(1660px, 112vw);
   max-width: none;
   filter: drop-shadow(0 42px 70px rgba(17, 24, 39, 0.1));
-  -webkit-mask-image: radial-gradient(ellipse at center, #000 64%, rgba(0, 0, 0, 0.92) 74%, transparent 91%);
-  mask-image: radial-gradient(ellipse at center, #000 64%, rgba(0, 0, 0, 0.92) 74%, transparent 91%);
-  transform: translate(-50%, -47%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 7%, #000 93%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 7%, #000 93%, transparent 100%);
+  transform: translate(-50%, -48%);
   user-select: none;
 }
 
@@ -257,7 +262,7 @@ button:disabled {
 .nova-agent-rail {
   position: absolute;
   z-index: 2;
-  bottom: 24px;
+  bottom: 28px;
   left: 50%;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -338,8 +343,8 @@ button:disabled {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
-  width: min(920px, 100%);
-  margin: -10px auto 0;
+  width: min(980px, 100%);
+  margin: 4px auto 0;
 }
 
 .nova-landing-signal-row > div {
@@ -380,15 +385,20 @@ button:disabled {
   grid-template-columns: minmax(280px, 0.36fr) minmax(0, 1fr);
   gap: 22px;
   align-items: start;
-  padding: 26px 0 0;
+  margin-top: 0;
+  padding: 64px max(26px, calc((100% - 1420px) / 2)) 0;
+  background:
+    linear-gradient(180deg, #ffffff 0, var(--bg) 92px, var(--bg) 100%);
 }
 
 .nova-system-copy {
-  position: sticky;
-  top: 26px;
+  position: static;
   display: grid;
+  align-content: start;
+  align-self: stretch;
   gap: 12px;
-  padding: 28px;
+  min-height: 100%;
+  padding: 32px;
   border-radius: 30px;
   background: #ffffff;
 }
