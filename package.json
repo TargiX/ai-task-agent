@@ -33,6 +33,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.468.0",
+    "posthog-js": "^1.434.2",
     "radix-ui": "^1.6.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
